@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SareeDesk</title><link rel="stylesheet" href="assets/css/style.css"></head>
+<body>
+<div id="login" class="login"><form id="loginForm" class="login-card"><div class="logo">S</div><h1>SareeDesk</h1><p>Inventory & Sales Management</p><label>Email<input id="email" type="email" required></label><label>Password<input id="password" type="password" required></label><button class="primary">Sign in</button><p id="loginMsg" class="error"></p></form></div>
+<div id="app" class="app hidden"><aside><div class="brand"><span class="logo">S</span><b>SareeDesk</b></div><nav id="nav">
+<button data-page="home">⌂ Dashboard</button><button data-page="add">＋ Add Item</button><button data-page="inventory">▦ Inventory</button><button data-page="sales">↗ Sales</button><button data-page="reports">▤ Reports</button><button data-page="viewsales">▣ View Sales</button><button data-page="opex">₹ OPEX</button><button data-page="staff" id="staffNav">♙ Staff</button></nav><div class="bottom"><small id="userEmail"></small><button id="logout" class="link">Sign out</button></div></aside>
+<main><header><div><small>SAREEDESK MANAGEMENT</small><h2 id="heading">Dashboard</h2></div><span id="role" class="pill"></span></header><section id="screen"></section>
+<button id="homeBottom" class="home-bottom" type="button">
+    ⌂ Home
+</button></main></div>
+<div id="toast"></div><script type="module" src="assets/js/app.js"></script></body></html>
