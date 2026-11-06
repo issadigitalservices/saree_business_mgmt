@@ -1,7 +1,6 @@
-
 /* =====================================
-   SAREEDESK - VIEW SALES
-   Edit and Delete Invoices
+   AARABHI ONLINE THREADS
+   RECEIPT MANAGEMENT
 ===================================== */
 
 import {
@@ -12,434 +11,180 @@ import {
     serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
-const $ = (id) => document.getElementById(id);
+const $ = id => document.getElementById(id);
 
-const money = (value) => {
-    return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        maximumFractionDigits: 2
-    }).format(Number(value) || 0);
+const number = value => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
 };
 
-const number = (value) => {
-    const result = Number(value);
-    return Number.isFinite(result) ? result : 0;
-};
+const money = value => new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 2
+}).format(number(value));
 
-const escapeHTML = (value) => {
-    return String(value ?? '').replace(/[&<>"']/g, character => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-    })[character]);
-};
+const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;',
+    '"': '&quot;', "'": '&#039;'
+})[c]);
 
-const formatDate = (timestamp) => {
-    if (!timestamp) return '-';
-
-    const date = timestamp.toDate
-        ? timestamp.toDate()
-        : new Date(timestamp);
-
-    if (Number.isNaN(date.getTime())) return '-';
-
-    return date.toLocaleDateString('en-IN');
-};
-
-function formatSaleDate(sale) {
+const formatDate = sale => {
     if (sale.saleDate) {
-        const parts = String(sale.saleDate).split('-');
-
-        if (parts.length === 3) {
-            return `${parts[2]}/${parts[1]}/${parts[0]}`;
-        }
+        const parts = sale.saleDate.split('-');
+        if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
     }
 
-    return formatDate(sale.createdAt);
+    const date = sale.createdAt?.toDate
+        ? sale.createdAt.toDate()
+        : new Date(sale.createdAt || 0);
+
+    return Number.isNaN(date.getTime())
+        ? '-'
+        : date.toLocaleDateString('en-IN');
+};
+
+function getItems(sale) {
+
+    if (Array.isArray(sale.items)) return sale.items;
+
+    // Compatibility with older one-product sale documents.
+    if (sale.productId || sale.productName) {
+        return [{
+            productId: sale.productId || '',
+            name: sale.productName || '',
+            code: sale.productCode || '',
+            qty: number(sale.qty),
+            price: number(sale.price),
+            unitCost: number(sale.unitCost)
+        }];
+    }
+
+    return [];
+}
+
+function getSubtotal(sale) {
+    if (sale.subtotal !== undefined) return number(sale.subtotal);
+
+    return getItems(sale).reduce(
+        (sum, item) => sum + number(item.qty) * number(item.price),
+        0
+    );
+}
+
+function getProfit(sale) {
+
+    const cost = sale.costTotal !== undefined
+        ? number(sale.costTotal)
+        : getItems(sale).reduce(
+            (sum, item) => sum + number(item.qty) * number(item.unitCost),
+            0
+        );
+
+    return getSubtotal(sale) - cost;
 }
 
 let salesRecords = [];
-let productsMap = new Map();
 let activeFilter = 'all';
 let editingSale = null;
 
 export async function initViewSales({ db, user, profile }) {
 
-    const tableBody = $('salesTableBody');
-
-    if (!tableBody) return;
+    const body = $('salesTableBody');
+    if (!body) return;
 
     const isAdmin = profile?.role === 'admin';
 
-    /* ---------------------------------
-       MESSAGE
-    --------------------------------- */
-
-    function setMessage(text, type = '') {
+    function message(text, type = '') {
         $('viewSalesMessage').textContent = text;
         $('viewSalesMessage').className = `view-sales-message ${type}`;
     }
 
-    function setEditMessage(text, type = '') {
+    function editMessage(text, type = '') {
         $('editSaleMessage').textContent = text;
         $('editSaleMessage').className = `form-message ${type}`;
     }
 
-    /* ---------------------------------
-       LOAD INVENTORY FOR EDITS
-    --------------------------------- */
-
-    async function loadProductsMap() {
-        const snapshot = await getDocs(collection(db, 'products'));
-
-        productsMap = new Map();
-
-        snapshot.docs.forEach(item => {
-            productsMap.set(item.id, {
-                id: item.id,
-                ...item.data()
-            });
-        });
-    }
-    
-    function getSaleProfit(sale) {
-    const qty = number(sale.qty);
-
-    const unitCost = number(sale.unitCost) ||
-        number(productsMap.get(sale.productId)?.unitCost);
-
-    const costTotal =
-        sale.costTotal !== undefined && sale.costTotal !== null
-            ? number(sale.costTotal)
-            : unitCost * qty;
-
-    // Invoice total includes courier charged to the customer.
-    // Subtract courier cost to calculate product profit.
-    return number(sale.total) - costTotal - number(sale.courier);
-}
-    /* ---------------------------------
-       UPDATE SUMMARY
-    --------------------------------- */
-
     function updateSummary() {
-    const totalInvoices = salesRecords.length;
 
-    const totalSales = salesRecords.reduce(
-        (sum, sale) => sum + number(sale.total),
-        0
-    );
+        $('totalInvoices').textContent = salesRecords.length;
 
-    const totalProfit = salesRecords.reduce(
-        (sum, sale) => sum + (
-            number(sale.total) - number(sale.costTotal)
-        ),
-        0
-    );
+        $('totalSalesAmount').textContent = money(
+            salesRecords.reduce((sum, sale) => sum + number(sale.total), 0)
+        );
 
-    const totalDue = salesRecords.reduce(
-        (sum, sale) => sum + Math.max(0, number(sale.paymentDue)),
-        0
-    );
+        $('totalSalesProfit').textContent = money(
+            salesRecords.reduce((sum, sale) => sum + getProfit(sale), 0)
+        );
 
-    $('totalInvoices').textContent = totalInvoices;
-    $('totalSalesAmount').textContent = money(totalSales);
-    $('totalSalesProfit').textContent = money(totalProfit);
-    $('totalSalesDue').textContent = money(totalDue);
-}
+        $('totalSalesDue').textContent = money(
+            salesRecords.reduce((sum, sale) => sum + number(sale.paymentDue), 0)
+        );
+    }
 
-    /* ---------------------------------
-       FILTER AND SEARCH
-    --------------------------------- */
+    function filteredRecords() {
 
-    function getFilteredSales() {
-
-        const searchTerm = $('salesSearch').value
-            .trim()
-            .toLowerCase();
+        const term = $('salesSearch').value.trim().toLowerCase();
 
         return salesRecords.filter(sale => {
 
-            const invoice = String(sale.invoice || '').toLowerCase();
-            const customer = String(sale.customer || '').toLowerCase();
-            const product = String(sale.productName || '').toLowerCase();
+            const productText = getItems(sale)
+                .map(item => `${item.name} ${item.code}`)
+                .join(' ')
+                .toLowerCase();
 
             const matchesSearch =
-                invoice.includes(searchTerm) ||
-                customer.includes(searchTerm) ||
-                product.includes(searchTerm);
+                String(sale.invoice || '').toLowerCase().includes(term) ||
+                String(sale.customer || '').toLowerCase().includes(term) ||
+                productText.includes(term);
 
-            let matchesFilter = true;
-
-            if (activeFilter === 'due') {
-                matchesFilter = number(sale.paymentDue) > 0;
-            }
-
-            if (activeFilter === 'undelivered') {
-                matchesFilter = sale.deliveryStatus !== 'Delivered';
-            }
+            const matchesFilter =
+                activeFilter === 'all' ||
+                (activeFilter === 'due' && number(sale.paymentDue) > 0) ||
+                (activeFilter === 'undelivered' && sale.deliveryStatus !== 'Delivered');
 
             return matchesSearch && matchesFilter;
         });
     }
 
-/* ---------------------------------
-   PRINT INVOICE
---------------------------------- */
-
-function printInvoice(sale) {
-    const printWindow = window.open('', '_blank', 'width=850,height=750');
-
-    if (!printWindow) {
-        setMessage('Please allow pop-ups to print the invoice.', 'error');
-        return;
-    }
-
-    const due = Math.max(0, number(sale.paymentDue));
-    const invoiceDate = formatSaleDate(sale);
-
-    printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>${escapeHTML(sale.invoice || 'Receipt')}</title>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    padding: 30px;
-                    color: #222;
-                }
-
-                .receipt {
-                    max-width: 700px;
-                    margin: auto;
-                    padding: 30px;
-                    border: 1px solid #ddd;
-                }
-
-                .header {
-                    text-align: center;
-                    border-bottom: 2px solid #167f78;
-                    padding-bottom: 15px;
-                }
-
-                .header h1 {
-                    color: #167f78;
-                    margin-bottom: 5px;
-                }
-
-                .details {
-                    margin: 25px 0;
-                    line-height: 1.9;
-                }
-
-                table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin-top: 20px;
-                }
-
-                th, td {
-                    padding: 12px;
-                    border: 1px solid #ddd;
-                    text-align: left;
-                }
-
-                th {
-                    background: #f3f6f8;
-                }
-
-                .totals {
-                    margin-top: 25px;
-                    text-align: right;
-                    line-height: 2;
-                }
-
-                .balance {
-                    font-size: 20px;
-                    font-weight: bold;
-                }
-
-                .footer {
-                    text-align: center;
-                    margin-top: 40px;
-                    color: #777;
-                }
-
-                @media print {
-                    body { padding: 0; }
-                    .receipt { border: none; }
-                }
-            </style>
-        </head>
-
-        <body>
-            <div class="receipt">
-
-                <div class="header">
-                    <h1>SareeDesk</h1>
-                    <p>Sales Invoice</p>
-                    <strong>${escapeHTML(sale.invoice || '-')}</strong>
-                </div>
-
-                <div class="details">
-                    <strong>Date:</strong> ${escapeHTML(invoiceDate)}<br>
-                    <strong>Customer:</strong> ${escapeHTML(sale.customer || '-')}<br>
-                    <strong>Phone:</strong> ${escapeHTML(sale.phone || '-')}<br>
-                    <strong>Order Mode:</strong> ${escapeHTML(sale.orderMode || '-')}<br>
-                    <strong>Payment Mode:</strong> ${escapeHTML(sale.paymentMode || '-')}<br>
-                    <strong>Payment Status:</strong> ${escapeHTML(sale.paymentStatus || '-')}<br>
-                    <strong>Delivery Status:</strong> ${escapeHTML(sale.deliveryStatus || '-')}
-                </div>
-
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Product</th>
-                            <th>Quantity</th>
-                            <th>Unit Price</th>
-                            <th>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>${escapeHTML(sale.productName || '-')}</td>
-                            <td>${number(sale.qty)}</td>
-                            <td>${money(sale.price)}</td>
-                            <td>${money(sale.total)}</td>
-
-<td class="${getSaleProfit(sale) >= 0 ? 'status-paid' : 'status-due'}">
-    ${money(getSaleProfit(sale))}
-</td>
-
-<td>${money(sale.paid)}</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <div class="totals">
-                    <div>Invoice Total: ${money(sale.total)}</div>
-                    <div>Courier Cost: ${money(sale.courier)}</div>
-                    <div>Amount Received: ${money(sale.paid)}</div>
-                    <div class="balance">Balance Due: ${money(due)}</div>
-                </div>
-
-                <div class="footer">
-                    <p>Thank you for shopping with us!</p>
-                    <strong>SareeDesk</strong>
-                </div>
-
-            </div>
-
-            <script>
-                window.onload = function() {
-                    window.print();
-                };
-            <\/script>
-        </body>
-        </html>
-    `);
-
-    printWindow.document.close();
-}
-
-
-    /* ---------------------------------
-       RENDER SALES
-    --------------------------------- */
-
     function renderSales() {
 
-        const filteredSales = getFilteredSales();
+        const records = filteredRecords();
 
-        $('salesCount').textContent =
-    `${filteredSales.length} receipt${filteredSales.length === 1 ? '' : 's'}`;
+        $('salesCount').textContent = `${records.length} receipts`;
 
-        if (!filteredSales.length) {
-            tableBody.innerHTML = `
-                <tr>
-                    <td colspan="11" class="empty-state">
-                        No receipts found.
-                    </td>
-                </tr>
+        if (!records.length) {
+            body.innerHTML = `
+                <tr><td colspan="12" class="empty-state">No receipts found.</td></tr>
             `;
             return;
         }
 
-        tableBody.innerHTML = filteredSales.map(sale => {
+        body.innerHTML = records.map(sale => {
 
-            const paymentDue = number(sale.paymentDue);
-
-            const paymentClass = paymentDue <= 0
-                ? 'status-paid'
-                : 'status-due';
-
-            const deliveryClass = sale.deliveryStatus === 'Delivered'
-                ? 'status-paid'
-                : 'status-pending';
+            const items = getItems(sale);
+            const names = items.map(item => item.name).filter(Boolean).join(', ');
+            const qty = items.reduce((sum, item) => sum + number(item.qty), 0);
+            const due = number(sale.paymentDue);
 
             return `
                 <tr>
-                    <td>${escapeHTML(sale.invoice || '-')}</td>
-
-                    <td>${formatSaleDate(sale)}</td>
-
-                    <td>${escapeHTML(sale.customer || '-')}</td>
-
-                    <td>${escapeHTML(sale.productName || '-')}</td>
-
-                    <td>${number(sale.qty)}</td>
-
+                    <td>${esc(sale.invoice || '-')}</td>
+                    <td>${esc(formatDate(sale))}</td>
+                    <td>${esc(sale.customer || '-')}</td>
+                    <td title="${esc(names)}">${esc(names || '-')}</td>
+                    <td>${qty}</td>
                     <td>${money(sale.total)}</td>
-
-<td class="profit-cell">
-    ${money(number(sale.total) - number(sale.costTotal))}
-</td>
-
-<td>${money(sale.paid)}</td>
-
-                    <td class="${paymentClass}">
-                        ${money(paymentDue)}
-                    </td>
-
-                    <td class="${paymentClass}">
-                        ${escapeHTML(sale.paymentStatus || '-')}
-                    </td>
-
-                    <td class="${deliveryClass}">
-                        ${escapeHTML(sale.deliveryStatus || '-')}
-                    </td>
-
+                    <td>${money(getProfit(sale))}</td>
+                    <td>${money(sale.paid)}</td>
+                    <td>${money(due)}</td>
+                    <td>${esc(sale.paymentStatus || '-')}</td>
+                    <td>${esc(sale.deliveryStatus || '-')}</td>
                     <td>
                         <div class="sales-actions">
-                            <button
-                                type="button"
-                                class="edit-invoice-btn"
-                                data-edit-sale="${escapeHTML(sale.id)}"
-                            >
-                                Edit
-                            </button>
-
-                            ${isAdmin ? `
-                                <button
-                                    type="button"
-                                    class="delete-invoice-btn"
-                                    data-delete-sale="${escapeHTML(sale.id)}"
-                                >
-                                    Delete
-                                </button>
-<button
-    type="button"
-    class="print-invoice-btn"
-    data-print-sale="${escapeHTML(sale.id)}"
->
-    Print
-</button>
-
-
-                            ` : ''}
+                            <button type="button" data-edit="${esc(sale.id)}">Edit</button>
+                            <button type="button" data-print="${esc(sale.id)}">Print</button>
+                            ${isAdmin ? `<button type="button" data-delete="${esc(sale.id)}">Delete</button>` : ''}
                         </div>
                     </td>
                 </tr>
@@ -447,326 +192,232 @@ function printInvoice(sale) {
         }).join('');
     }
 
-    /* ---------------------------------
-       LOAD SALES
-    --------------------------------- */
-
     async function loadSales() {
 
-        const refreshButton = $('refreshSales');
-
-        refreshButton.disabled = true;
-        refreshButton.textContent = 'Loading...';
-
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="12" class="empty-state">
-                    Loading invoices...
-                </td>
-            </tr>
-        `;
-
-        setMessage('');
+        const button = $('refreshSales');
+        button.disabled = true;
+        button.textContent = 'Loading...';
 
         try {
 
-            const [salesSnapshot] = await Promise.all([
-                getDocs(collection(db, 'sales')),
-                loadProductsMap()
-            ]);
+            const snapshot = await getDocs(collection(db, 'sales'));
 
-            salesRecords = salesSnapshot.docs.map(item => ({
+            salesRecords = snapshot.docs.map(item => ({
                 id: item.id,
                 ...item.data()
             }));
 
             salesRecords.sort((a, b) => {
-
-                const dateA = a.createdAt?.toMillis
+                const da = a.createdAt?.toMillis
                     ? a.createdAt.toMillis()
                     : new Date(a.createdAt || 0).getTime();
 
-                const dateB = b.createdAt?.toMillis
+                const dbb = b.createdAt?.toMillis
                     ? b.createdAt.toMillis()
                     : new Date(b.createdAt || 0).getTime();
 
-                return dateB - dateA;
+                return dbb - da;
             });
 
             updateSummary();
             renderSales();
+            message('');
 
         } catch (error) {
 
-            console.error('Sales loading error:', error);
-
-            tableBody.innerHTML = `
-                <tr>
-                    <td colspan="11" class="empty-state">
-                        Unable to load sales records.
-                    </td>
-                </tr>
-            `;
-
-            setMessage(error.message || 'Unable to load invoices.', 'error');
+            console.error(error);
+            message(error.message || 'Unable to load receipts.', 'error');
 
         } finally {
-
-            refreshButton.disabled = false;
-            refreshButton.textContent = '↻ Refresh';
+            button.disabled = false;
+            button.textContent = '↻ Refresh';
         }
     }
 
-    /* ---------------------------------
-       DELETE INVOICE
-       RESTORE STOCK AUTOMATICALLY
-    --------------------------------- */
+    function printReceipt(sale) {
 
-    async function deleteInvoice(saleId, button) {
+        const win = window.open('', '_blank', 'width=850,height=850');
 
-    if (!isAdmin) {
-        alert('Only Admin can delete invoices.');
-        return;
+        if (!win) {
+            message('Please allow pop-ups to print receipts.', 'error');
+            return;
+        }
+
+        const rows = getItems(sale).map(item => `
+            <tr>
+                <td>${esc(item.name)}</td>
+                <td>${esc(item.code || '-')}</td>
+                <td>${number(item.qty)}</td>
+                <td>${money(item.price)}</td>
+                <td>${money(number(item.qty) * number(item.price))}</td>
+            </tr>
+        `).join('');
+
+        win.document.write(`
+            <!doctype html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>${esc(sale.invoice || 'Receipt')}</title>
+                <style>
+                    body{font-family:Arial,sans-serif;padding:25px;color:#222}
+                    .receipt{max-width:700px;margin:auto}
+                    h1,.center{text-align:center}
+                    h1{color:#147f78}
+                    .line{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #ddd}
+                    table{width:100%;border-collapse:collapse;margin-top:20px}
+                    th,td{border:1px solid #ddd;padding:9px;text-align:left}
+                    th{background:#f1f5f5}
+                    .total{font-size:20px;font-weight:bold}
+                    .footer{text-align:center;margin-top:30px}
+                </style>
+            </head>
+            <body>
+                <div class="receipt">
+                    <h1>Aarabhi Online Threads</h1>
+                    <p class="center">Receipt</p>
+
+                    <div class="line"><span>Receipt No.</span><b>${esc(sale.invoice || '-')}</b></div>
+                    <div class="line"><span>Date</span><b>${esc(formatDate(sale))}</b></div>
+                    <div class="line"><span>Customer</span><b>${esc(sale.customer || '-')}</b></div>
+                    <div class="line"><span>Phone</span><b>${esc(sale.phone || '-')}</b></div>
+                    <div class="line"><span>Order Mode</span><b>${esc(sale.orderMode || '-')}</b></div>
+                    <div class="line"><span>Payment Mode</span><b>${esc(sale.paymentMode || '-')}</b></div>
+
+                    <h3>Products</h3>
+                    <table>
+                        <thead><tr><th>Product</th><th>Code</th><th>Qty</th><th>Unit Price</th><th>Amount</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+
+                    <div class="line"><span>Subtotal</span><b>${money(getSubtotal(sale))}</b></div>
+                    <div class="line"><span>Courier</span><b>${money(sale.courier)}</b></div>
+                    <div class="line total"><span>Grand Total</span><b>${money(sale.total)}</b></div>
+                    <div class="line"><span>Received</span><b>${money(sale.paid)}</b></div>
+                    <div class="line"><span>Balance Due</span><b>${money(sale.paymentDue)}</b></div>
+                    <div class="line"><span>Payment Status</span><b>${esc(sale.paymentStatus || '-')}</b></div>
+                    <div class="line"><span>Delivery Status</span><b>${esc(sale.deliveryStatus || '-')}</b></div>
+
+                    <div class="footer">Thank you for shopping with us!</div>
+                    <p class="center"><button onclick="window.print()">Print Receipt</button></p>
+                </div>
+            </body>
+            </html>
+        `);
+
+        win.document.close();
     }
 
-    const sale = salesRecords.find(item => item.id === saleId);
+    async function deleteReceipt(id) {
 
-    if (!sale) return;
+        if (!isAdmin) {
+            message('Only Admin can delete receipts.', 'error');
+            return;
+        }
 
-    const confirmed = confirm(
-        `Are you sure you want to permanently delete this invoice?\n\n` +
-        `Invoice: ${sale.invoice || '-'}\n` +
-        `Customer: ${sale.customer || '-'}\n` +
-        `Product: ${sale.productName || '-'}\n` +
-        `Quantity: ${number(sale.qty)}\n` +
-        `Total: ${money(sale.total)}\n\n` +
-        `If the linked inventory product exists, the quantity will be returned to stock.\n` +
-        `If the product is missing, the invoice will still be deleted, but stock cannot be restored.\n\n` +
-        `This action cannot be undone.`
-    );
+        const sale = salesRecords.find(item => item.id === id);
+        if (!sale) return;
 
-    if (!confirmed) return;
+        if (!confirm(
+            `Delete receipt ${sale.invoice} for ${sale.customer}?\n\n` +
+            `All linked product quantities will be returned to stock.`
+        )) return;
 
-    button.disabled = true;
-    button.textContent = 'Deleting...';
+        try {
 
-    try {
+            const saleRef = doc(db, 'sales', id);
 
-        const saleRef = doc(db, 'sales', saleId);
+            await runTransaction(db, async transaction => {
 
-        let stockRestored = false;
-        let linkedProductMissing = false;
+                const saleSnap = await transaction.get(saleRef);
 
-        await runTransaction(db, async transaction => {
+                if (!saleSnap.exists()) {
+                    throw new Error('Receipt no longer exists.');
+                }
 
-            // Reset values in case Firestore retries the transaction.
-            stockRestored = false;
-            linkedProductMissing = false;
+                const currentSale = saleSnap.data();
+                const items = getItems(currentSale);
 
-            // Read the latest invoice.
-            const saleSnap = await transaction.get(saleRef);
+                const linkedItems = items.filter(item => item.productId);
 
-            if (!saleSnap.exists()) {
-                throw new Error('This invoice no longer exists.');
-            }
-
-            const currentSale = saleSnap.data();
-
-            // Restore stock only for inventory-based sales.
-            if (currentSale.productId) {
-
-                const productRef = doc(
-                    db,
-                    'products',
-                    currentSale.productId
+                const refs = linkedItems.map(item =>
+                    doc(db, 'products', item.productId)
                 );
 
-                const productSnap = await transaction.get(productRef);
+                // Read all linked product documents before writing.
+                const snapshots = [];
+                for (const ref of refs) {
+                    snapshots.push(await transaction.get(ref));
+                }
 
-                if (productSnap.exists()) {
+                snapshots.forEach((snap, index) => {
+                    if (!snap.exists()) return;
 
-                    const oldQty = number(currentSale.qty);
-
-                    if (oldQty < 0) {
-                        throw new Error('Invalid invoice quantity.');
-                    }
-
-                    const currentStock = number(
-                        productSnap.data().stock
-                    );
-
-                    transaction.update(productRef, {
-                        stock: currentStock + oldQty,
+                    const item = linkedItems[index];
+                    transaction.update(refs[index], {
+                        stock: number(snap.data().stock) + number(item.qty),
                         updatedAt: serverTimestamp(),
                         updatedBy: user.uid
                     });
+                });
 
-                    stockRestored = true;
+                transaction.delete(saleRef);
+            });
 
-                } else {
+            message('Receipt deleted and available stock restored.', 'success');
+            await loadSales();
 
-                    // Product was deleted earlier.
-                    // Continue with invoice deletion.
-                    linkedProductMissing = true;
-                }
-            }
-
-            // Delete invoice even if the linked product is missing.
-            transaction.delete(saleRef);
-
-        });
-
-        if (linkedProductMissing) {
-
-            setMessage(
-                'Invoice deleted successfully. Warning: Linked product was missing, so stock could not be restored.',
-                'error'
-            );
-
-        } else if (stockRestored) {
-
-            setMessage(
-                'Invoice deleted successfully. Stock quantity restored.',
-                'success'
-            );
-
-        } else {
-
-            setMessage(
-                'Direct sale invoice deleted successfully.',
-                'success'
-            );
+        } catch (error) {
+            console.error(error);
+            message(error.message || 'Unable to delete receipt.', 'error');
         }
-
-        // Refresh invoice list and summary.
-        await loadSales();
-
-    } catch (error) {
-
-        console.error('Invoice deletion error:', error);
-
-        setMessage(
-            error.message || 'Unable to delete invoice.',
-            'error'
-        );
-
-        button.disabled = false;
-        button.textContent = 'Delete';
     }
-}
 
-    /* ---------------------------------
-       FILTER BUTTONS
-    --------------------------------- */
-
-    $('salesFilters').addEventListener('click', event => {
-
-        const button = event.target.closest('[data-filter]');
-
-        if (!button) return;
-
-        activeFilter = button.dataset.filter;
-
-        $('salesFilters')
-            .querySelectorAll('[data-filter]')
-            .forEach(item => item.classList.remove('active'));
-
-        button.classList.add('active');
-
-        renderSales();
-    });
-
-    $('salesSearch').addEventListener('input', renderSales);
-
-    $('refreshSales').addEventListener('click', loadSales);
-
-    /* ---------------------------------
-       OPEN EDIT MODAL
-    --------------------------------- */
-
-    function openEditModal(sale) {
+    function openEdit(sale) {
 
         editingSale = sale;
 
-        $('editSaleId').value = sale.id;
         $('editInvoiceNumber').textContent = sale.invoice || '';
-
+        $('editSaleId').value = sale.id;
         $('editCustomer').value = sale.customer || '';
         $('editPhone').value = sale.phone || '';
-        $('editSaleDate').value =
-    sale.saleDate ||
-    (sale.createdAt?.toDate
-        ? (() => {
-            const d = sale.createdAt.toDate();
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        })()
-        : new Date().toISOString().slice(0, 10));
-        $('editProductName').value = sale.productName || '';
-
-        $('editQty').value = number(sale.qty) || 1;
-        $('editPrice').value = number(sale.price);
         $('editPaid').value = number(sale.paid);
         $('editCourier').value = number(sale.courier);
-
         $('editOrderMode').value = sale.orderMode || 'Online';
         $('editPaymentMode').value = sale.paymentMode || 'Cash';
         $('editDeliveryStatus').value = sale.deliveryStatus || 'Pending';
 
+        $('editReceiptProducts').innerHTML = `
+            <h4>Products in this receipt</h4>
+            <ul>
+                ${getItems(sale).map(item => `
+                    <li>${esc(item.name)} — Qty: ${number(item.qty)} × ${money(item.price)}</li>
+                `).join('')}
+            </ul>
+            <small>Product quantities and prices are kept unchanged when editing receipt details.</small>
+        `;
+
         calculateEditTotals();
 
-        setEditMessage('');
-
+        editMessage('');
         $('editSaleModal').classList.remove('hidden');
     }
 
-    /* ---------------------------------
-       TABLE ACTIONS
-    --------------------------------- */
+    function calculateEditTotals() {
 
-    tableBody.addEventListener('click', async event => {
+        if (!editingSale) return;
 
-        const editButton = event.target.closest('[data-edit-sale]');
-        const deleteButton = event.target.closest('[data-delete-sale]');
-        const printButton = event.target.closest('[data-print-sale]');
+        const total = getSubtotal(editingSale) + number($('editCourier').value);
+        const paid = number($('editPaid').value);
+        const due = Math.max(0, total - paid);
 
-        if (editButton) {
-
-            const sale = salesRecords.find(item =>
-                item.id === editButton.dataset.editSale
-            );
-
-            if (sale) openEditModal(sale);
-
-            return;
-        }
-
-        if (printButton) {
-    const sale = salesRecords.find(item =>
-        item.id === printButton.dataset.printSale
-    );
-
-    if (sale) {
-        printInvoice(sale);
+        $('editTotal').textContent = money(total);
+        $('editDue').textContent = money(due);
     }
 
-    return;
-}
-
-        if (deleteButton) {
-
-            await deleteInvoice(
-                deleteButton.dataset.deleteSale,
-                deleteButton
-            );
-        }
+    ['editPaid', 'editCourier'].forEach(id => {
+        $(id).addEventListener('input', calculateEditTotals);
     });
-
-    /* ---------------------------------
-       CLOSE MODAL
-    --------------------------------- */
 
     function closeModal() {
         $('editSaleModal').classList.add('hidden');
@@ -774,216 +425,116 @@ function printInvoice(sale) {
     }
 
     $('closeSaleModal').addEventListener('click', closeModal);
-
     $('cancelSaleEdit').addEventListener('click', closeModal);
 
     $('editSaleModal').addEventListener('click', event => {
-        if (event.target === $('editSaleModal')) {
-            closeModal();
-        }
+        if (event.target === $('editSaleModal')) closeModal();
     });
-
-    /* ---------------------------------
-       CALCULATE EDIT TOTALS
-    --------------------------------- */
-
-    function getEditValues() {
-
-        const qty = number($('editQty').value);
-        const price = number($('editPrice').value);
-        const paid = number($('editPaid').value);
-        const courier = number($('editCourier').value);
-
-        const subtotal = qty * price;
-        const total = subtotal + courier;
-        const due = Math.max(0, total - paid);
-
-        return {
-            qty,
-            price,
-            paid,
-            courier,
-            subtotal,
-            total,
-            due
-        };
-    }
-
-    function calculateEditTotals() {
-
-        const values = getEditValues();
-
-        $('editTotal').textContent = money(values.total);
-        $('editDue').textContent = money(values.due);
-    }
-
-    [
-        'editQty',
-        'editPrice',
-        'editPaid',
-        'editCourier'
-    ].forEach(id => {
-        $(id).addEventListener('input', calculateEditTotals);
-    });
-
-    /* ---------------------------------
-       UPDATE INVOICE
-    --------------------------------- */
 
     $('editSaleForm').addEventListener('submit', async event => {
 
         event.preventDefault();
 
-        if (!editingSale || !user?.uid) {
-            setEditMessage('Please sign in again.', 'error');
+        if (!editingSale) return;
+
+        const paid = number($('editPaid').value);
+        const courier = number($('editCourier').value);
+        const subtotal = getSubtotal(editingSale);
+        const total = subtotal + courier;
+        const due = Math.max(0, total - paid);
+
+        if (paid < 0 || courier < 0 || paid > total) {
+            editMessage('Please check the received amount and courier cost.', 'error');
             return;
         }
 
-        if (!event.currentTarget.reportValidity()) return;
-
-        const updateButton = $('updateSaleBtn');
-
-        const values = getEditValues();
-
-        if (!Number.isInteger(values.qty) || values.qty < 1) {
-            setEditMessage('Enter a valid quantity.', 'error');
-            return;
-        }
-
-        if (values.price <= 0) {
-            setEditMessage('Selling price must be greater than zero.', 'error');
-            return;
-        }
-
-        if (values.courier < 0 || values.paid < 0) {
-            setEditMessage('Payment and courier values cannot be negative.', 'error');
-            return;
-        }
-
-        if (values.paid > values.total) {
-            setEditMessage('Amount received cannot exceed invoice total.', 'error');
-            return;
-        }
-
-        const sale = editingSale;
-
-        const isStockSale = Boolean(sale.productId);
-
-        const productRef = isStockSale
-            ? doc(db, 'products', sale.productId)
-            : null;
-
-        const saleRef = doc(db, 'sales', sale.id);
-
-        const oldQty = number(sale.qty);
-
-        const unitCost = number(sale.unitCost) ||
-            (isStockSale
-                ? number(productsMap.get(sale.productId)?.unitCost)
-                : 0);
-
-        const costTotal = unitCost * values.qty;
-
-        const paymentStatus = values.due <= 0
-            ? 'Paid'
-            : values.paid > 0
-                ? 'Partial'
-                : 'Due';
-
-        updateButton.disabled = true;
-        updateButton.textContent = 'Updating...';
+        const button = $('updateSaleBtn');
+        button.disabled = true;
+        button.textContent = 'Updating...';
 
         try {
 
+            const saleRef = doc(db, 'sales', editingSale.id);
+
+            const paymentStatus = due <= 0
+                ? 'Paid'
+                : paid > 0 ? 'Partial' : 'Due';
+
             await runTransaction(db, async transaction => {
 
-                const saleSnap = await transaction.get(saleRef);
+                const snap = await transaction.get(saleRef);
 
-                if (!saleSnap.exists()) {
-                    throw new Error('This invoice no longer exists.');
-                }
-
-                let newStock = null;
-
-                if (isStockSale) {
-
-                    const productSnap = await transaction.get(productRef);
-
-                    if (!productSnap.exists()) {
-                        throw new Error('Linked inventory product was not found.');
-                    }
-
-                    const currentStock = number(productSnap.data().stock);
-
-                    // Restore old quantity, then deduct edited quantity.
-                    newStock = currentStock + oldQty - values.qty;
-
-                    if (newStock < 0) {
-                        throw new Error(
-                            `Insufficient stock for this update. Available stock: ${currentStock + oldQty}`
-                        );
-                    }
-
-                    transaction.update(productRef, {
-                        stock: newStock,
-                        updatedAt: serverTimestamp(),
-                        updatedBy: user.uid
-                    });
+                if (!snap.exists()) {
+                    throw new Error('Receipt no longer exists.');
                 }
 
                 transaction.update(saleRef, {
-
                     customer: $('editCustomer').value.trim(),
-phone: $('editPhone').value.trim(),
-saleDate: $('editSaleDate').value,
-
-                    qty: values.qty,
-                    price: values.price,
-
-                    total: values.total,
-                    costTotal,
-                    unitCost,
-
-                    courier: values.courier,
-
-                    paid: values.paid,
-                    paymentDue: values.due,
+                    phone: $('editPhone').value.trim(),
+                    paid,
+                    courier,
+                    total,
+                    paymentDue: due,
                     paymentStatus,
-
                     orderMode: $('editOrderMode').value,
                     paymentMode: $('editPaymentMode').value,
                     deliveryStatus: $('editDeliveryStatus').value,
-
                     updatedAt: serverTimestamp(),
                     updatedBy: user.uid
                 });
             });
 
-            setEditMessage('Invoice updated successfully.', 'success');
-
+            message('Receipt updated successfully.', 'success');
+            closeModal();
             await loadSales();
-
-            setTimeout(closeModal, 500);
 
         } catch (error) {
 
-            console.error('Invoice update error:', error);
-
-            setEditMessage(
-                error.message || 'Unable to update invoice.',
-                'error'
-            );
+            console.error(error);
+            editMessage(error.message || 'Unable to update receipt.', 'error');
 
         } finally {
-
-            updateButton.disabled = false;
-            updateButton.textContent = 'Update Invoice';
+            button.disabled = false;
+            button.textContent = 'Update Receipt';
         }
     });
 
-    /* ---------------------------------
-       INITIALIZE
-    --------------------------------- */
+    body.addEventListener('click', event => {
+
+        const edit = event.target.closest('[data-edit]');
+        const print = event.target.closest('[data-print]');
+        const del = event.target.closest('[data-delete]');
+
+        if (edit) {
+            const sale = salesRecords.find(item => item.id === edit.dataset.edit);
+            if (sale) openEdit(sale);
+        }
+
+        if (print) {
+            const sale = salesRecords.find(item => item.id === print.dataset.print);
+            if (sale) printReceipt(sale);
+        }
+
+        if (del) deleteReceipt(del.dataset.delete);
+    });
+
+    $('salesSearch').addEventListener('input', renderSales);
+
+    $('salesFilters').addEventListener('click', event => {
+
+        const button = event.target.closest('[data-filter]');
+        if (!button) return;
+
+        activeFilter = button.dataset.filter;
+
+        $('salesFilters').querySelectorAll('[data-filter]').forEach(item => {
+            item.classList.toggle('active', item === button);
+        });
+
+        renderSales();
+    });
+
+    $('refreshSales').addEventListener('click', loadSales);
 
     await loadSales();
 }

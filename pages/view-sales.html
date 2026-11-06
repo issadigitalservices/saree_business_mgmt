@@ -1,82 +1,55 @@
 <div class="view-sales-page">
 
     <div class="intro">
-        <h3>Sales Management</h3>
-        <p>View invoices, track customer payments and update deliveries.</p>
+        <h3>Receipt Management</h3>
+        <p>View receipts, track customer payments and update delivery status.</p>
     </div>
 
-    <div class="sales-summary" id="salesSummary">
-
-    <div class="stat">
-        <small>Total Invoices</small>
-        <strong id="totalInvoices">0</strong>
+    <div class="sales-summary">
+        <div class="stat">
+            <small>Total Receipts</small>
+            <strong id="totalInvoices">0</strong>
+        </div>
+        <div class="stat">
+            <small>Total Sales</small>
+            <strong id="totalSalesAmount">₹0</strong>
+        </div>
+        <div class="stat">
+            <small>Total Profit</small>
+            <strong id="totalSalesProfit">₹0</strong>
+        </div>
+        <div class="stat">
+            <small>Outstanding</small>
+            <strong id="totalSalesDue">₹0</strong>
+        </div>
     </div>
-
-    <div class="stat">
-        <small>Total Sales</small>
-        <strong id="totalSalesAmount">₹0</strong>
-    </div>
-
-    <div class="stat">
-        <small>Total Profit</small>
-        <strong id="totalSalesProfit">₹0</strong>
-    </div>
-
-    <div class="stat">
-        <small>Outstanding</small>
-        <strong id="totalSalesDue">₹0</strong>
-    </div>
-
-</div>
 
     <div class="sales-toolbar">
-
-        <input
-            id="salesSearch"
-            type="search"
-            placeholder="Search invoice, customer or product..."
-            autocomplete="off"
-        >
-
-        <button type="button" id="refreshSales" class="primary">
-            ↻ Refresh
-        </button>
-
+        <input id="salesSearch" type="search"
+            placeholder="Search receipt, customer or product...">
+        <button type="button" id="refreshSales" class="primary">↻ Refresh</button>
     </div>
 
     <div class="sales-filters" id="salesFilters">
-
-        <button type="button" class="active" data-filter="all">
-            All Sales
-        </button>
-
-        <button type="button" data-filter="due">
-            Due Invoices
-        </button>
-
-        <button type="button" data-filter="undelivered">
-            Not Delivered
-        </button>
-
+        <button type="button" class="active" data-filter="all">All Receipts</button>
+        <button type="button" data-filter="due">Due Receipts</button>
+        <button type="button" data-filter="undelivered">Not Delivered</button>
     </div>
 
     <div class="table-card">
-
         <div class="table-heading">
-            <h3>Sales Invoices</h3>
+            <h3>Receipts</h3>
             <span id="salesCount">0 receipts</span>
         </div>
 
         <div class="table-wrap">
-
             <table class="data-table">
-
                 <thead>
                     <tr>
-                        <th>Invoice</th>
+                        <th>Receipt</th>
                         <th>Date</th>
                         <th>Customer</th>
-                        <th>Product</th>
+                        <th>Products</th>
                         <th>Qty</th>
                         <th>Total</th>
                         <th>Profit</th>
@@ -87,43 +60,24 @@
                         <th>Action</th>
                     </tr>
                 </thead>
-
                 <tbody id="salesTableBody">
-                    <tr>
-                        <td colspan="11" class="empty-state">
-                            Loading sales...
-                        </td>
-                    </tr>
+                    <tr><td colspan="12" class="empty-state">Loading receipts...</td></tr>
                 </tbody>
-
             </table>
-
         </div>
-
     </div>
 
     <p id="viewSalesMessage" class="view-sales-message"></p>
 
-    <!-- EDIT INVOICE MODAL -->
-
     <div id="editSaleModal" class="sale-modal hidden">
-
         <div class="sale-modal-content">
 
             <div class="sale-modal-heading">
                 <div>
-                    <h3>Edit Invoice</h3>
+                    <h3>Edit Receipt</h3>
                     <small id="editInvoiceNumber"></small>
                 </div>
-
-                <button
-                    type="button"
-                    id="closeSaleModal"
-                    class="modal-close"
-                    aria-label="Close"
-                >
-                    ×
-                </button>
+                <button type="button" id="closeSaleModal" class="modal-close">×</button>
             </div>
 
             <form id="editSaleForm">
@@ -143,26 +97,6 @@
                     </label>
 
                     <label>
-    Sale Date
-    <input id="editSaleDate" type="date" required>
-</label>
-
-                    <label class="full">
-                        Product
-                        <input id="editProductName" type="text" readonly>
-                    </label>
-
-                    <label>
-                        Quantity
-                        <input id="editQty" type="number" min="1" step="1" required>
-                    </label>
-
-                    <label>
-                        Selling Price / Unit (₹)
-                        <input id="editPrice" type="number" min="0.01" step="0.01" required>
-                    </label>
-
-                    <label>
                         Amount Received (₹)
                         <input id="editPaid" type="number" min="0" step="0.01" required>
                     </label>
@@ -175,69 +109,55 @@
                     <label>
                         Order Mode
                         <select id="editOrderMode">
-                            <option value="Online">Online</option>
-                            <option value="WhatsApp">WhatsApp</option>
-                            <option value="Instagram">Instagram</option>
-                            <option value="Facebook">Facebook</option>
-                            <option value="Direct Sale">Direct Sale</option>
-                            <option value="Other">Other</option>
+                            <option>Online</option>
+                            <option>WhatsApp</option>
+                            <option>Instagram</option>
+                            <option>Facebook</option>
+                            <option>Walk-in</option>
+                            <option>Other</option>
                         </select>
                     </label>
 
                     <label>
                         Payment Mode
                         <select id="editPaymentMode">
-                            <option value="Cash">Cash</option>
-                            <option value="UPI">UPI</option>
-                            <option value="Bank Transfer">Bank Transfer</option>
-                            <option value="Card">Card</option>
-                            <option value="COD">Cash on Delivery</option>
-                            <option value="Other">Other</option>
+                            <option>Cash</option>
+                            <option>UPI</option>
+                            <option>Bank Transfer</option>
+                            <option>Card</option>
+                            <option>COD</option>
+                            <option>Other</option>
                         </select>
                     </label>
 
                     <label>
                         Delivery Status
                         <select id="editDeliveryStatus">
-                            <option value="Pending">Pending</option>
-                            <option value="Processing">Processing</option>
-                            <option value="Shipped">Shipped</option>
-                            <option value="Delivered">Delivered</option>
+                            <option>Pending</option>
+                            <option>Processing</option>
+                            <option>Shipped</option>
+                            <option>Delivered</option>
                         </select>
                     </label>
 
                 </div>
 
-                <div class="edit-sale-total">
-                    <div>
-                        <span>Invoice Total</span>
-                        <strong id="editTotal">₹0.00</strong>
-                    </div>
+                <div id="editReceiptProducts"></div>
 
-                    <div>
-                        <span>Balance Due</span>
-                        <strong id="editDue">₹0.00</strong>
-                    </div>
+                <div class="edit-sale-total">
+                    <div><span>Receipt Total</span><strong id="editTotal">₹0.00</strong></div>
+                    <div><span>Balance Due</span><strong id="editDue">₹0.00</strong></div>
                 </div>
 
                 <div class="modal-actions">
-
-                    <button type="button" id="cancelSaleEdit" class="secondary">
-                        Cancel
-                    </button>
-
-                    <button type="submit" id="updateSaleBtn" class="primary">
-                        Update Invoice
-                    </button>
-
+                    <button type="button" id="cancelSaleEdit" class="secondary">Cancel</button>
+                    <button type="submit" id="updateSaleBtn" class="primary">Update Receipt</button>
                 </div>
 
                 <p id="editSaleMessage" class="form-message"></p>
 
             </form>
-
         </div>
-
     </div>
 
 </div>
