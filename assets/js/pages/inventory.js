@@ -1,3 +1,4 @@
+
 /* =====================================
    SAREEDESK - INVENTORY MANAGEMENT
    Search, Filters, Export, Edit, Delete
@@ -42,57 +43,74 @@ export async function initInventory({
     profile,
     setEditingProductId = () => {}
 }) {
-
     const tableBody = $('inventoryTableBody');
 
-    if (!tableBody) return;
+    if (!tableBody) {
+        console.error('Inventory table container not found.');
+        return;
+    }
 
     const searchInput = $('inventorySearch');
     const refreshButton = $('refreshInventory');
     const exportButton = $('exportInventory');
+    const messageElement = $('inventoryMessage');
 
-    const filterButtons = document.querySelectorAll(
-        '[data-filter]'
-    );
+    const filterButtons = document.querySelectorAll('[data-filter]');
 
     const isAdmin = profile?.role === 'admin';
 
     let activeFilter = 'all';
 
     /* =====================================
-       SUMMARY COUNTS
+       SAFE MESSAGE DISPLAY
     ===================================== */
 
-    function updateSummary() {
+    function showMessage(message, type = '') {
+        if (!messageElement) return;
 
-    const totalProducts = inventoryProducts.length;
+        messageElement.textContent = message;
+        messageElement.className = 'inventory-message';
 
-    const inStockProducts = inventoryProducts.filter(
-        product => Number(product.stock) > 0
-    ).length;
-
-    const soldOutProducts = inventoryProducts.filter(
-        product => Number(product.stock) <= 0
-    ).length;
-
-    // Update only the three filter counts.
-    $('filterTotalCount').textContent = totalProducts;
-    $('filterStockCount').textContent = inStockProducts;
-    $('filterSoldCount').textContent = soldOutProducts;
-}
+        if (type) {
+            messageElement.classList.add(type);
+        }
+    }
 
     /* =====================================
-       GET FILTERED PRODUCTS
+       UPDATE FILTER COUNTS
+    ===================================== */
+
+    function updateFilterCounts() {
+        const totalProducts = inventoryProducts.length;
+
+        const inStockProducts = inventoryProducts.filter(
+            product => Number(product.stock) > 0
+        ).length;
+
+        const soldOutProducts = inventoryProducts.filter(
+            product => Number(product.stock) <= 0
+        ).length;
+
+        // These elements are optional.
+        const totalCount = $('filterTotalCount');
+        const stockCount = $('filterStockCount');
+        const soldCount = $('filterSoldCount');
+
+        if (totalCount) totalCount.textContent = totalProducts;
+        if (stockCount) stockCount.textContent = inStockProducts;
+        if (soldCount) soldCount.textContent = soldOutProducts;
+    }
+
+    /* =====================================
+       FILTER PRODUCTS
     ===================================== */
 
     function getFilteredProducts() {
-
-        const searchTerm = searchInput.value
+        const searchTerm = (searchInput?.value || '')
             .trim()
             .toLowerCase();
 
         return inventoryProducts.filter(product => {
-
             const name = String(product.name || '').toLowerCase();
             const code = String(product.code || '').toLowerCase();
             const stock = Number(product.stock) || 0;
@@ -120,12 +138,14 @@ export async function initInventory({
     ===================================== */
 
     function renderInventory(products) {
+        const countElement = $('inventoryCount');
 
-        $('inventoryCount').textContent =
-            `${products.length} product${products.length === 1 ? '' : 's'}`;
+        if (countElement) {
+            countElement.textContent =
+                `${products.length} product${products.length === 1 ? '' : 's'}`;
+        }
 
         if (!products.length) {
-
             tableBody.innerHTML = `
                 <tr>
                     <td colspan="7" class="empty-state">
@@ -133,12 +153,10 @@ export async function initInventory({
                     </td>
                 </tr>
             `;
-
             return;
         }
 
         tableBody.innerHTML = products.map(product => {
-
             const unitCost = Number(product.unitCost) || 0;
             const sellingPrice = Number(product.price) || 0;
             const stock = Number(product.stock) || 0;
@@ -149,13 +167,10 @@ export async function initInventory({
                 ? 'profit-positive'
                 : 'profit-negative';
 
-            const stockClass = stock <= 2
-                ? 'stock-low'
-                : '';
+            const stockClass = stock <= 2 ? 'stock-low' : '';
 
             return `
                 <tr>
-
                     <td>${escapeHTML(product.code || '-')}</td>
 
                     <td class="product-name">
@@ -175,7 +190,6 @@ export async function initInventory({
                     </td>
 
                     <td class="inventory-actions">
-
                         <button
                             type="button"
                             class="edit-product-btn"
@@ -193,12 +207,9 @@ export async function initInventory({
                                 Delete
                             </button>
                         ` : ''}
-
                     </td>
-
                 </tr>
             `;
-
         }).join('');
     }
 
@@ -207,10 +218,7 @@ export async function initInventory({
     ===================================== */
 
     function applyFilters() {
-
-        const filteredProducts = getFilteredProducts();
-
-        renderInventory(filteredProducts);
+        renderInventory(getFilteredProducts());
     }
 
     /* =====================================
@@ -218,10 +226,8 @@ export async function initInventory({
     ===================================== */
 
     filterButtons.forEach(button => {
-
         button.addEventListener('click', () => {
-
-            activeFilter = button.dataset.filter;
+            activeFilter = button.dataset.filter || 'all';
 
             filterButtons.forEach(item => {
                 item.classList.toggle(
@@ -238,14 +244,13 @@ export async function initInventory({
        SEARCH EVENT
     ===================================== */
 
-    searchInput.addEventListener('input', applyFilters);
+    searchInput?.addEventListener('input', applyFilters);
 
     /* =====================================
-       EXPORT CSV
+       EXPORT FILTERED PRODUCTS TO CSV
     ===================================== */
 
     function exportInventory() {
-
         const products = getFilteredProducts();
 
         if (!products.length) {
@@ -264,7 +269,6 @@ export async function initInventory({
         ];
 
         const rows = products.map(product => {
-
             const stock = Number(product.stock) || 0;
             const unitCost = Number(product.unitCost) || 0;
             const sellingPrice = Number(product.price) || 0;
@@ -289,19 +293,17 @@ export async function initInventory({
             ).join(',')
         ).join('\r\n');
 
-        // UTF-8 BOM helps Excel display text correctly.
         const blob = new Blob(
             ['\uFEFF' + csvContent],
             { type: 'text/csv;charset=utf-8;' }
         );
 
-        const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
 
         link.href = url;
 
         const date = new Date().toISOString().slice(0, 10);
-
         link.download = `SareeDesk_Inventory_${date}.csv`;
 
         document.body.appendChild(link);
@@ -311,16 +313,17 @@ export async function initInventory({
         URL.revokeObjectURL(url);
     }
 
-    exportButton.addEventListener('click', exportInventory);
+    exportButton?.addEventListener('click', exportInventory);
 
     /* =====================================
        LOAD PRODUCTS FROM FIRESTORE
     ===================================== */
 
     async function loadInventory() {
-
-        refreshButton.disabled = true;
-        refreshButton.textContent = 'Loading...';
+        if (refreshButton) {
+            refreshButton.disabled = true;
+            refreshButton.textContent = 'Loading...';
+        }
 
         tableBody.innerHTML = `
             <tr>
@@ -330,11 +333,9 @@ export async function initInventory({
             </tr>
         `;
 
-        $('inventoryMessage').textContent = '';
-        $('inventoryMessage').className = 'inventory-message';
+        showMessage();
 
         try {
-
             const snapshot = await getDocs(
                 collection(db, 'products')
             );
@@ -348,11 +349,10 @@ export async function initInventory({
                 String(b.code || '').localeCompare(String(a.code || ''))
             );
 
-            updateSummary();
+            updateFilterCounts();
             applyFilters();
 
         } catch (error) {
-
             console.error('Inventory loading error:', error);
 
             tableBody.innerHTML = `
@@ -363,33 +363,32 @@ export async function initInventory({
                 </tr>
             `;
 
-            $('inventoryMessage').textContent =
-                error.message || 'An error occurred while loading inventory.';
-
-            $('inventoryMessage').classList.add('error');
+            showMessage(
+                error.message || 'An error occurred while loading inventory.',
+                'error'
+            );
 
         } finally {
-
-            refreshButton.disabled = false;
-            refreshButton.textContent = '↻ Refresh';
+            if (refreshButton) {
+                refreshButton.disabled = false;
+                refreshButton.textContent = '↻ Refresh';
+            }
         }
     }
 
-    refreshButton.addEventListener('click', loadInventory);
+    refreshButton?.addEventListener('click', loadInventory);
 
     /* =====================================
        EDIT AND DELETE EVENTS
     ===================================== */
 
     tableBody.addEventListener('click', async event => {
-
         const editButton = event.target.closest('[data-edit-id]');
         const deleteButton = event.target.closest('[data-delete-id]');
 
         /* EDIT PRODUCT */
 
         if (editButton) {
-
             const productId = editButton.dataset.editId;
 
             if (!productId) return;
@@ -397,7 +396,7 @@ export async function initInventory({
             setEditingProductId(productId);
 
             if (typeof go === 'function') {
-                go('add');
+                await go('add');
             }
 
             return;
@@ -406,7 +405,6 @@ export async function initInventory({
         /* DELETE PRODUCT */
 
         if (deleteButton) {
-
             if (!isAdmin) {
                 alert('Only Admin can delete products.');
                 return;
@@ -433,7 +431,6 @@ export async function initInventory({
             deleteButton.textContent = 'Deleting...';
 
             try {
-
                 await deleteDoc(
                     doc(db, 'products', productId)
                 );
@@ -442,20 +439,17 @@ export async function initInventory({
                     item => item.id !== productId
                 );
 
-                updateSummary();
+                updateFilterCounts();
                 applyFilters();
 
-                $('inventoryMessage').textContent =
-                    'Product deleted successfully.';
-
-                $('inventoryMessage').className =
-                    'inventory-message success';
+                showMessage(
+                    'Product deleted successfully.',
+                    'success'
+                );
 
                 // Remove the associated image from Cloudflare R2.
                 if (product.imageKey && user) {
-
                     try {
-
                         const idToken = await user.getIdToken();
 
                         const response = await fetch(
@@ -482,7 +476,6 @@ export async function initInventory({
                         }
 
                     } catch (imageError) {
-
                         console.warn(
                             'Product deleted, but image cleanup failed:',
                             imageError
@@ -491,14 +484,12 @@ export async function initInventory({
                 }
 
             } catch (error) {
-
                 console.error('Product deletion error:', error);
 
-                $('inventoryMessage').textContent =
-                    error.message || 'Unable to delete product.';
-
-                $('inventoryMessage').className =
-                    'inventory-message error';
+                showMessage(
+                    error.message || 'Unable to delete product.',
+                    'error'
+                );
 
                 await loadInventory();
             }
