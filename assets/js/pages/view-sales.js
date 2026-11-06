@@ -92,29 +92,51 @@ export async function initViewSales({ db, user, profile }) {
             });
         });
     }
+    
+    function getSaleProfit(sale) {
+    const qty = number(sale.qty);
 
+    const unitCost = number(sale.unitCost) ||
+        number(productsMap.get(sale.productId)?.unitCost);
+
+    const costTotal =
+        sale.costTotal !== undefined && sale.costTotal !== null
+            ? number(sale.costTotal)
+            : unitCost * qty;
+
+    // Invoice total includes courier charged to the customer.
+    // Subtract courier cost to calculate product profit.
+    return number(sale.total) - costTotal - number(sale.courier);
+}
     /* ---------------------------------
        UPDATE SUMMARY
     --------------------------------- */
 
     function updateSummary() {
+    const totalInvoices = salesRecords.length;
 
-        const totalInvoices = salesRecords.length;
+    const totalSales = salesRecords.reduce(
+        (sum, sale) => sum + number(sale.total),
+        0
+    );
 
-        const totalSales = salesRecords.reduce(
-            (sum, sale) => sum + number(sale.total),
-            0
-        );
+    const totalProfit = salesRecords.reduce(
+        (sum, sale) => sum + (
+            number(sale.total) - number(sale.costTotal)
+        ),
+        0
+    );
 
-        const totalDue = salesRecords.reduce(
-            (sum, sale) => sum + Math.max(0, number(sale.paymentDue)),
-            0
-        );
+    const totalDue = salesRecords.reduce(
+        (sum, sale) => sum + Math.max(0, number(sale.paymentDue)),
+        0
+    );
 
-        $('totalInvoices').textContent = totalInvoices;
-        $('totalSalesAmount').textContent = money(totalSales);
-        $('totalSalesDue').textContent = money(totalDue);
-    }
+    $('totalInvoices').textContent = totalInvoices;
+    $('totalSalesAmount').textContent = money(totalSales);
+    $('totalSalesProfit').textContent = money(totalProfit);
+    $('totalSalesDue').textContent = money(totalDue);
+}
 
     /* ---------------------------------
        FILTER AND SEARCH
@@ -275,6 +297,12 @@ function printInvoice(sale) {
                             <td>${number(sale.qty)}</td>
                             <td>${money(sale.price)}</td>
                             <td>${money(sale.total)}</td>
+
+<td class="${getSaleProfit(sale) >= 0 ? 'status-paid' : 'status-due'}">
+    ${money(getSaleProfit(sale))}
+</td>
+
+<td>${money(sale.paid)}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -354,7 +382,11 @@ function printInvoice(sale) {
 
                     <td>${money(sale.total)}</td>
 
-                    <td>${money(sale.paid)}</td>
+<td class="profit-cell">
+    ${money(number(sale.total) - number(sale.costTotal))}
+</td>
+
+<td>${money(sale.paid)}</td>
 
                     <td class="${paymentClass}">
                         ${money(paymentDue)}
@@ -416,7 +448,7 @@ function printInvoice(sale) {
 
         tableBody.innerHTML = `
             <tr>
-                <td colspan="11" class="empty-state">
+                <td colspan="12" class="empty-state">
                     Loading invoices...
                 </td>
             </tr>

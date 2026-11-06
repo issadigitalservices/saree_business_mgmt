@@ -12,7 +12,7 @@
 
 .sales-summary {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 14px;
     margin: 20px 0;
 }
@@ -323,10 +323,9 @@
 
 @media (max-width: 700px) {
     .sales-summary {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-    }
-
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
     .sales-summary .stat {
         padding: 13px;
     }
@@ -410,4 +409,21 @@
 
 .print-invoice-btn:hover {
     background: #d2eae6;
+}
+
+.view-sales-page .profit-cell {
+    color: #15803d;
+    font-weight: 700;
+}
+
+.view-sales-page .sales-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+
+.view-sales-page .data-table th:last-child,
+.view-sales-page .data-table td:last-child {
+    min-width: 190px;
 }
