@@ -253,7 +253,25 @@ export async function initAddItem({
             $('cancelEditBtn').classList.remove('hidden');
 
             $('productCode').value = product.code || '';
-            $('productName').value = product.name || '';
+            const productNameSelect = $('productName');
+const existingName = product.name || '';
+
+if (
+    existingName &&
+    !Array.from(productNameSelect.options).some(
+        option => option.value === existingName
+    )
+) {
+    const legacyOption = document.createElement('option');
+    legacyOption.value = existingName;
+    legacyOption.textContent = existingName;
+    productNameSelect.appendChild(legacyOption);
+}
+
+productNameSelect.value = existingName;
+
+$('productAdditionalInfo').value =
+    product.additionalInfo || '';
             $('shippingPackagingCost').value =
                 product.shippingPackagingCost ?? 0;
             $('purchaseCost').value = product.purchaseCost ?? 0;
@@ -287,6 +305,7 @@ export async function initAddItem({
 
     function resetForm() {
         form.reset();
+        $('productAdditionalInfo').value = '';
 
         currentImageUrl = '';
         currentImageKey = '';
@@ -354,7 +373,8 @@ export async function initAddItem({
         await addDoc(collection(db, 'sales'), {
             invoice: `SD-${Date.now()}`,
             productId: null,
-            productName: $('productName').value.trim(),
+            productName: $('productName').value,
+productAdditionalInfo: $('productAdditionalInfo').value.trim(),
             productCode,
             productImage: image.imageUrl,
             productImageKey: image.imageKey,
@@ -387,7 +407,8 @@ export async function initAddItem({
 
         await addDoc(collection(db, 'products'), {
             code,
-            name: $('productName').value.trim(),
+            name: $('productName').value,
+additionalInfo: $('productAdditionalInfo').value.trim(),
             imageUrl: image.imageUrl,
             imageKey: image.imageKey,
             shippingPackagingCost:
@@ -409,7 +430,8 @@ export async function initAddItem({
         const productRef = doc(db, 'products', currentEditingId);
 
         await setDoc(productRef, {
-            name: $('productName').value.trim(),
+            name: $('productName').value,
+additionalInfo: $('productAdditionalInfo').value.trim(),
             imageUrl: image.imageUrl,
             imageKey: image.imageKey,
             shippingPackagingCost:
