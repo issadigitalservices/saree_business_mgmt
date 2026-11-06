@@ -371,3 +371,29 @@
         width: 100%;
     }
 }
+
+.sales-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.delete-invoice-btn {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.delete-invoice-btn:hover {
+    background: #fecaca;
+}
+
+.delete-invoice-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

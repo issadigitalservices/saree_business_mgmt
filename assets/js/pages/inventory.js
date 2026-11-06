@@ -1,15 +1,20 @@
 
 /* =====================================
    SAREEDESK - INVENTORY
-   Images delivered from Cloudflare R2
+   Edit and Delete Products
 ===================================== */
 
 import {
     collection,
-    getDocs
+    getDocs,
+    doc,
+    deleteDoc
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
 const $ = (id) => document.getElementById(id);
+
+const IMAGE_API =
+    'https://dawn-sun-197asareedesk-image-api.issakuttyalam.workers.dev';
 
 const money = (value) => {
     return new Intl.NumberFormat('en-IN', {
@@ -34,20 +39,27 @@ let inventoryProducts = [];
 export async function initInventory({
     db,
     go,
+    user,
+    profile,
     setEditingProductId = () => {}
 }) {
+
     const tableBody = $('inventoryTableBody');
+
     if (!tableBody) return;
 
     const searchInput = $('inventorySearch');
     const refreshButton = $('refreshInventory');
+
+    const isAdmin = profile?.role === 'admin';
 
     /* ---------------------------------
        UPDATE SUMMARY
     --------------------------------- */
 
     function updateSummary(products) {
-        const totalProducts = products.length;
+
+        $('totalProducts').textContent = products.length;
 
         const totalUnits = products.reduce(
             (sum, product) => sum + (Number(product.stock) || 0),
@@ -62,7 +74,6 @@ export async function initInventory({
             0
         );
 
-        $('totalProducts').textContent = totalProducts;
         $('totalUnits').textContent = totalUnits;
         $('inventoryValue').textContent = money(inventoryValue);
     }
@@ -72,12 +83,14 @@ export async function initInventory({
     --------------------------------- */
 
     function renderInventory(products) {
+
         updateSummary(products);
 
         $('inventoryCount').textContent =
             `${products.length} product${products.length === 1 ? '' : 's'}`;
 
         if (!products.length) {
+
             tableBody.innerHTML = `
                 <tr>
                     <td colspan="7" class="empty-state">
@@ -85,10 +98,12 @@ export async function initInventory({
                     </td>
                 </tr>
             `;
+
             return;
         }
 
         tableBody.innerHTML = products.map(product => {
+
             const unitCost = Number(product.unitCost) || 0;
             const sellingPrice = Number(product.price) || 0;
             const stock = Number(product.stock) || 0;
@@ -103,53 +118,13 @@ export async function initInventory({
                 ? 'stock-low'
                 : '';
 
-            const imageUrl = product.imageUrl
-                ? escapeHTML(product.imageUrl)
-                : '';
-
-            const productImage = imageUrl
-                ? `
-                    <img
-                        src="${imageUrl}"
-                        alt="${escapeHTML(product.name || 'Product')}"
-                        loading="lazy"
-                        style="
-                            width:48px;
-                            height:48px;
-                            object-fit:cover;
-                            border-radius:8px;
-                            margin-right:10px;
-                            vertical-align:middle;
-                        "
-                    >
-                `
-                : `
-                    <span style="
-                        display:inline-flex;
-                        width:48px;
-                        height:48px;
-                        align-items:center;
-                        justify-content:center;
-                        background:#f1f5f9;
-                        border-radius:8px;
-                        margin-right:10px;
-                        vertical-align:middle;
-                        color:#64748b;
-                        font-size:11px;
-                    ">No image</span>
-                `;
-
             return `
                 <tr>
+
                     <td>${escapeHTML(product.code || '-')}</td>
 
                     <td class="product-name">
-                        <span style="display:inline-flex;align-items:center;">
-                            ${productImage}
-                            <span>
-                                ${escapeHTML(product.name || 'Unnamed Product')}
-                            </span>
-                        </span>
+                        ${escapeHTML(product.name || 'Unnamed Product')}
                     </td>
 
                     <td>${money(unitCost)}</td>
@@ -164,7 +139,8 @@ export async function initInventory({
                         ${stock}
                     </td>
 
-                    <td>
+                    <td class="inventory-actions">
+
                         <button
                             type="button"
                             class="edit-product-btn"
@@ -172,9 +148,22 @@ export async function initInventory({
                         >
                             Edit
                         </button>
+
+                        ${isAdmin ? `
+                            <button
+                                type="button"
+                                class="delete-product-btn"
+                                data-delete-id="${escapeHTML(product.id)}"
+                            >
+                                Delete
+                            </button>
+                        ` : ''}
+
                     </td>
+
                 </tr>
             `;
+
         }).join('');
     }
 
@@ -183,11 +172,13 @@ export async function initInventory({
     --------------------------------- */
 
     function searchInventory() {
+
         const searchTerm = searchInput.value
             .trim()
             .toLowerCase();
 
         const filteredProducts = inventoryProducts.filter(product => {
+
             const name = String(product.name || '').toLowerCase();
             const code = String(product.code || '').toLowerCase();
 
@@ -205,6 +196,7 @@ export async function initInventory({
     --------------------------------- */
 
     async function loadInventory() {
+
         refreshButton.disabled = true;
         refreshButton.textContent = 'Loading...';
 
@@ -220,6 +212,7 @@ export async function initInventory({
         $('inventoryMessage').className = 'inventory-message';
 
         try {
+
             const snapshot = await getDocs(
                 collection(db, 'products')
             );
@@ -236,6 +229,7 @@ export async function initInventory({
             searchInventory();
 
         } catch (error) {
+
             console.error('Inventory loading error:', error);
 
             tableBody.innerHTML = `
@@ -252,27 +246,136 @@ export async function initInventory({
             $('inventoryMessage').classList.add('error');
 
         } finally {
+
             refreshButton.disabled = false;
             refreshButton.textContent = '↻ Refresh';
         }
     }
 
     /* ---------------------------------
-       EDIT PRODUCT
+       EDIT AND DELETE BUTTONS
     --------------------------------- */
 
-    tableBody.addEventListener('click', (event) => {
+    tableBody.addEventListener('click', async (event) => {
+
         const editButton = event.target.closest('[data-edit-id]');
+        const deleteButton = event.target.closest('[data-delete-id]');
 
-        if (!editButton) return;
+        /* EDIT PRODUCT */
 
-        const productId = editButton.dataset.editId;
-        if (!productId) return;
+        if (editButton) {
 
-        setEditingProductId(productId);
+            const productId = editButton.dataset.editId;
 
-        if (typeof go === 'function') {
-            go('add');
+            if (!productId) return;
+
+            setEditingProductId(productId);
+
+            if (typeof go === 'function') {
+                go('add');
+            }
+
+            return;
+        }
+
+        /* DELETE PRODUCT */
+
+        if (deleteButton) {
+
+            if (!isAdmin) {
+                alert('Only Admin can delete products.');
+                return;
+            }
+
+            const productId = deleteButton.dataset.deleteId;
+
+            const product = inventoryProducts.find(
+                item => item.id === productId
+            );
+
+            if (!product) return;
+
+            const confirmed = confirm(
+                `Are you sure you want to permanently delete this product?\n\n` +
+                `Product: ${product.name || 'Unnamed Product'}\n` +
+                `Code: ${product.code || '-'}\n\n` +
+                `This action cannot be undone.`
+            );
+
+            if (!confirmed) return;
+
+            deleteButton.disabled = true;
+            deleteButton.textContent = 'Deleting...';
+
+            try {
+
+                // Delete product document from Firestore.
+                await deleteDoc(
+                    doc(db, 'products', productId)
+                );
+
+                // Remove it from the displayed list.
+                inventoryProducts = inventoryProducts.filter(
+                    item => item.id !== productId
+                );
+
+                searchInventory();
+
+                $('inventoryMessage').textContent =
+                    'Product deleted successfully.';
+
+                $('inventoryMessage').classList.add('success');
+
+                // Attempt to remove the associated image from R2.
+                if (product.imageKey && user) {
+
+                    try {
+
+                        const idToken = await user.getIdToken();
+
+                        const response = await fetch(
+                            `${IMAGE_API}/delete`,
+                            {
+                                method: 'DELETE',
+                                headers: {
+                                    Authorization: `Bearer ${idToken}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    key: product.imageKey
+                                })
+                            }
+                        );
+
+                        const result = await response.json();
+
+                        if (!response.ok || !result.success) {
+                            console.warn(
+                                'Product was deleted, but R2 image cleanup failed:',
+                                result.error
+                            );
+                        }
+
+                    } catch (imageError) {
+
+                        console.warn(
+                            'Product was deleted, but image cleanup failed:',
+                            imageError
+                        );
+                    }
+                }
+
+            } catch (error) {
+
+                console.error('Product deletion error:', error);
+
+                $('inventoryMessage').textContent =
+                    error.message || 'Unable to delete product.';
+
+                $('inventoryMessage').classList.add('error');
+
+                await loadInventory();
+            }
         }
     });
 

@@ -1,4 +1,4 @@
-<div class="opex-page">
+<div class="opex-page" id="opexPage">
 
     <div class="intro">
         <h3>Operating Expenses</h3>
@@ -19,7 +19,7 @@
     <form id="opexForm" class="form-card">
 
         <div class="form-section">
-            <h3>Add Expense</h3>
+            <h3 id="opexFormHeading">Add Expense</h3>
 
             <div class="form-grid">
 
@@ -38,13 +38,14 @@
 
                 <label>
                     Amount (₹)
-                    <input id="opexAmount" type="number" min="0.01" step="0.01" required>
+                    <input id="opexAmount" type="number"
+                        min="0.01" step="0.01" required>
                 </label>
 
                 <label class="full">
                     Description
-                    <input id="opexDescription" type="text" required
-                        placeholder="Enter expense details">
+                    <input id="opexDescription" type="text"
+                        required placeholder="Enter expense details">
                 </label>
 
                 <label>
@@ -66,6 +67,7 @@
     </form>
 
     <div class="table-card opex-history">
+
         <div class="table-heading">
             <h3>Expense History</h3>
             <span id="opexHistoryCount">0 records</span>
@@ -73,19 +75,25 @@
 
         <div class="table-wrap">
             <table class="data-table">
+
                 <thead>
                     <tr>
                         <th>Date</th>
                         <th>Category</th>
                         <th>Description</th>
                         <th>Amount</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
+
                 <tbody id="opexTableBody">
                     <tr>
-                        <td colspan="4" class="empty-state">Loading expenses...</td>
+                        <td colspan="5" class="empty-state">
+                            Loading expenses...
+                        </td>
                     </tr>
                 </tbody>
+
             </table>
         </div>
     </div>

@@ -203,3 +203,37 @@
         width: 100%;
     }
 }
+
+
+/* Inventory Edit and Delete buttons */
+
+.inventory-actions {
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.delete-product-btn {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+    padding: 9px 13px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.delete-product-btn:hover {
+    background: #fecaca;
+}
+
+.delete-product-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.edit-product-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

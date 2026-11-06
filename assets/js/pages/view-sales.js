@@ -1,5 +1,7 @@
+
 /* =====================================
    SAREEDESK - VIEW SALES
+   Edit and Delete Invoices
 ===================================== */
 
 import {
@@ -52,11 +54,13 @@ let productsMap = new Map();
 let activeFilter = 'all';
 let editingSale = null;
 
-export async function initViewSales({ db, user }) {
+export async function initViewSales({ db, user, profile }) {
 
     const tableBody = $('salesTableBody');
 
     if (!tableBody) return;
+
+    const isAdmin = profile?.role === 'admin';
 
     /* ---------------------------------
        MESSAGE
@@ -77,7 +81,6 @@ export async function initViewSales({ db, user }) {
     --------------------------------- */
 
     async function loadProductsMap() {
-
         const snapshot = await getDocs(collection(db, 'products'));
 
         productsMap = new Map();
@@ -88,7 +91,6 @@ export async function initViewSales({ db, user }) {
                 ...item.data()
             });
         });
-
     }
 
     /* ---------------------------------
@@ -112,7 +114,6 @@ export async function initViewSales({ db, user }) {
         $('totalInvoices').textContent = totalInvoices;
         $('totalSalesAmount').textContent = money(totalSales);
         $('totalSalesDue').textContent = money(totalDue);
-
     }
 
     /* ---------------------------------
@@ -147,9 +148,7 @@ export async function initViewSales({ db, user }) {
             }
 
             return matchesSearch && matchesFilter;
-
         });
-
     }
 
     /* ---------------------------------
@@ -164,7 +163,6 @@ export async function initViewSales({ db, user }) {
             `${filteredSales.length} invoice${filteredSales.length === 1 ? '' : 's'}`;
 
         if (!filteredSales.length) {
-
             tableBody.innerHTML = `
                 <tr>
                     <td colspan="11" class="empty-state">
@@ -172,7 +170,6 @@ export async function initViewSales({ db, user }) {
                     </td>
                 </tr>
             `;
-
             return;
         }
 
@@ -190,7 +187,6 @@ export async function initViewSales({ db, user }) {
 
             return `
                 <tr>
-
                     <td>${escapeHTML(sale.invoice || '-')}</td>
 
                     <td>${formatDate(sale.createdAt)}</td>
@@ -218,20 +214,29 @@ export async function initViewSales({ db, user }) {
                     </td>
 
                     <td>
-                        <button
-                            type="button"
-                            class="edit-invoice-btn"
-                            data-edit-sale="${escapeHTML(sale.id)}"
-                        >
-                            Edit
-                        </button>
-                    </td>
+                        <div class="sales-actions">
+                            <button
+                                type="button"
+                                class="edit-invoice-btn"
+                                data-edit-sale="${escapeHTML(sale.id)}"
+                            >
+                                Edit
+                            </button>
 
+                            ${isAdmin ? `
+                                <button
+                                    type="button"
+                                    class="delete-invoice-btn"
+                                    data-delete-sale="${escapeHTML(sale.id)}"
+                                >
+                                    Delete
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
                 </tr>
             `;
-
         }).join('');
-
     }
 
     /* ---------------------------------
@@ -278,7 +283,6 @@ export async function initViewSales({ db, user }) {
                     : new Date(b.createdAt || 0).getTime();
 
                 return dateB - dateA;
-
             });
 
             updateSummary();
@@ -302,10 +306,146 @@ export async function initViewSales({ db, user }) {
 
             refreshButton.disabled = false;
             refreshButton.textContent = '↻ Refresh';
+        }
+    }
 
+    /* ---------------------------------
+       DELETE INVOICE
+       RESTORE STOCK AUTOMATICALLY
+    --------------------------------- */
+
+    async function deleteInvoice(saleId, button) {
+
+    if (!isAdmin) {
+        alert('Only Admin can delete invoices.');
+        return;
+    }
+
+    const sale = salesRecords.find(item => item.id === saleId);
+
+    if (!sale) return;
+
+    const confirmed = confirm(
+        `Are you sure you want to permanently delete this invoice?\n\n` +
+        `Invoice: ${sale.invoice || '-'}\n` +
+        `Customer: ${sale.customer || '-'}\n` +
+        `Product: ${sale.productName || '-'}\n` +
+        `Quantity: ${number(sale.qty)}\n` +
+        `Total: ${money(sale.total)}\n\n` +
+        `If the linked inventory product exists, the quantity will be returned to stock.\n` +
+        `If the product is missing, the invoice will still be deleted, but stock cannot be restored.\n\n` +
+        `This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    button.disabled = true;
+    button.textContent = 'Deleting...';
+
+    try {
+
+        const saleRef = doc(db, 'sales', saleId);
+
+        let stockRestored = false;
+        let linkedProductMissing = false;
+
+        await runTransaction(db, async transaction => {
+
+            // Reset values in case Firestore retries the transaction.
+            stockRestored = false;
+            linkedProductMissing = false;
+
+            // Read the latest invoice.
+            const saleSnap = await transaction.get(saleRef);
+
+            if (!saleSnap.exists()) {
+                throw new Error('This invoice no longer exists.');
+            }
+
+            const currentSale = saleSnap.data();
+
+            // Restore stock only for inventory-based sales.
+            if (currentSale.productId) {
+
+                const productRef = doc(
+                    db,
+                    'products',
+                    currentSale.productId
+                );
+
+                const productSnap = await transaction.get(productRef);
+
+                if (productSnap.exists()) {
+
+                    const oldQty = number(currentSale.qty);
+
+                    if (oldQty < 0) {
+                        throw new Error('Invalid invoice quantity.');
+                    }
+
+                    const currentStock = number(
+                        productSnap.data().stock
+                    );
+
+                    transaction.update(productRef, {
+                        stock: currentStock + oldQty,
+                        updatedAt: serverTimestamp(),
+                        updatedBy: user.uid
+                    });
+
+                    stockRestored = true;
+
+                } else {
+
+                    // Product was deleted earlier.
+                    // Continue with invoice deletion.
+                    linkedProductMissing = true;
+                }
+            }
+
+            // Delete invoice even if the linked product is missing.
+            transaction.delete(saleRef);
+
+        });
+
+        if (linkedProductMissing) {
+
+            setMessage(
+                'Invoice deleted successfully. Warning: Linked product was missing, so stock could not be restored.',
+                'error'
+            );
+
+        } else if (stockRestored) {
+
+            setMessage(
+                'Invoice deleted successfully. Stock quantity restored.',
+                'success'
+            );
+
+        } else {
+
+            setMessage(
+                'Direct sale invoice deleted successfully.',
+                'success'
+            );
         }
 
+        // Refresh invoice list and summary.
+        await loadSales();
+
+    } catch (error) {
+
+        console.error('Invoice deletion error:', error);
+
+        setMessage(
+            error.message || 'Unable to delete invoice.',
+            'error'
+        );
+
+        button.disabled = false;
+        button.textContent = 'Delete';
     }
+}
 
     /* ---------------------------------
        FILTER BUTTONS
@@ -326,7 +466,6 @@ export async function initViewSales({ db, user }) {
         button.classList.add('active');
 
         renderSales();
-
     });
 
     $('salesSearch').addEventListener('input', renderSales);
@@ -362,21 +501,35 @@ export async function initViewSales({ db, user }) {
         setEditMessage('');
 
         $('editSaleModal').classList.remove('hidden');
-
     }
 
-    tableBody.addEventListener('click', event => {
+    /* ---------------------------------
+       TABLE ACTIONS
+    --------------------------------- */
 
-        const button = event.target.closest('[data-edit-sale]');
+    tableBody.addEventListener('click', async event => {
 
-        if (!button) return;
+        const editButton = event.target.closest('[data-edit-sale]');
+        const deleteButton = event.target.closest('[data-delete-sale]');
 
-        const sale = salesRecords.find(item =>
-            item.id === button.dataset.editSale
-        );
+        if (editButton) {
 
-        if (sale) openEditModal(sale);
+            const sale = salesRecords.find(item =>
+                item.id === editButton.dataset.editSale
+            );
 
+            if (sale) openEditModal(sale);
+
+            return;
+        }
+
+        if (deleteButton) {
+
+            await deleteInvoice(
+                deleteButton.dataset.deleteSale,
+                deleteButton
+            );
+        }
     });
 
     /* ---------------------------------
@@ -384,11 +537,8 @@ export async function initViewSales({ db, user }) {
     --------------------------------- */
 
     function closeModal() {
-
         $('editSaleModal').classList.add('hidden');
-
         editingSale = null;
-
     }
 
     $('closeSaleModal').addEventListener('click', closeModal);
@@ -396,11 +546,9 @@ export async function initViewSales({ db, user }) {
     $('cancelSaleEdit').addEventListener('click', closeModal);
 
     $('editSaleModal').addEventListener('click', event => {
-
         if (event.target === $('editSaleModal')) {
             closeModal();
         }
-
     });
 
     /* ---------------------------------
@@ -427,7 +575,6 @@ export async function initViewSales({ db, user }) {
             total,
             due
         };
-
     }
 
     function calculateEditTotals() {
@@ -436,7 +583,6 @@ export async function initViewSales({ db, user }) {
 
         $('editTotal').textContent = money(values.total);
         $('editDue').textContent = money(values.due);
-
     }
 
     [
@@ -537,7 +683,7 @@ export async function initViewSales({ db, user }) {
 
                     const currentStock = number(productSnap.data().stock);
 
-                    // Restore the old quantity, then deduct the edited quantity.
+                    // Restore old quantity, then deduct edited quantity.
                     newStock = currentStock + oldQty - values.qty;
 
                     if (newStock < 0) {
@@ -551,7 +697,6 @@ export async function initViewSales({ db, user }) {
                         updatedAt: serverTimestamp(),
                         updatedBy: user.uid
                     });
-
                 }
 
                 transaction.update(saleRef, {
@@ -578,9 +723,7 @@ export async function initViewSales({ db, user }) {
 
                     updatedAt: serverTimestamp(),
                     updatedBy: user.uid
-
                 });
-
             });
 
             setEditMessage('Invoice updated successfully.', 'success');
@@ -602,9 +745,7 @@ export async function initViewSales({ db, user }) {
 
             updateButton.disabled = false;
             updateButton.textContent = 'Update Invoice';
-
         }
-
     });
 
     /* ---------------------------------
@@ -612,5 +753,4 @@ export async function initViewSales({ db, user }) {
     --------------------------------- */
 
     await loadSales();
-
 }
