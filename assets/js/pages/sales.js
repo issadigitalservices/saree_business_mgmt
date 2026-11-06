@@ -121,14 +121,23 @@ export async function initSales({ db, user, go }) {
 
     function getTotals() {
 
-        const subtotal = getSubtotal();
-        const courier = number($('saleCourier').value);
-        const total = subtotal + courier;
-        const paid = number($('salePaid').value);
-        const due = Math.max(0, total - paid);
+    const subtotal = getSubtotal();
+    const courier = number($('saleCourier').value);
+    const discount = number($('saleDiscount').value);
 
-        return { subtotal, courier, total, paid, due };
-    }
+    const total = subtotal + courier - discount;
+    const paid = number($('salePaid').value);
+    const due = Math.max(0, total - paid);
+
+    return {
+        subtotal,
+        courier,
+        discount,
+        total,
+        paid,
+        due
+    };
+}
 
     function updatePaymentStatus() {
 
@@ -141,16 +150,17 @@ export async function initSales({ db, user, go }) {
 
     function updateTotals() {
 
-        const values = getTotals();
+    const values = getTotals();
 
-        $('saleSubtotal').textContent = money(values.subtotal);
-        $('saleCourierTotal').textContent = money(values.courier);
-        $('saleGrandTotal').textContent = money(values.total);
-        $('saleReceivedTotal').textContent = money(values.paid);
-        $('saleDueTotal').textContent = money(values.due);
+    $('saleSubtotal').textContent = money(values.subtotal);
+    $('saleCourierTotal').textContent = money(values.courier);
+    $('saleDiscountTotal').textContent = '-' + money(values.discount);
+    $('saleGrandTotal').textContent = money(values.total);
+    $('saleReceivedTotal').textContent = money(values.paid);
+    $('saleDueTotal').textContent = money(values.due);
 
-        updatePaymentStatus();
-    }
+    updatePaymentStatus();
+}
 
     function renderCart() {
 
@@ -287,7 +297,8 @@ export async function initSales({ db, user, go }) {
     });
 
     $('saleCourier').addEventListener('input', updateTotals);
-    $('salePaid').addEventListener('input', updateTotals);
+$('saleDiscount').addEventListener('input', updateTotals);
+$('salePaid').addEventListener('input', updateTotals);
 
     function prepareReceipt() {
 
@@ -302,13 +313,17 @@ export async function initSales({ db, user, go }) {
 
         const values = getTotals();
 
-        if (values.courier < 0 || values.paid < 0) {
-            throw new Error('Courier and received amounts cannot be negative.');
-        }
+        if (values.courier < 0 || values.discount < 0 || values.paid < 0) {
+    throw new Error('Courier, discount and received amounts cannot be negative.');
+}
 
-        if (values.paid > values.total) {
-            throw new Error('Amount received cannot exceed receipt total.');
-        }
+if (values.discount > values.subtotal + values.courier) {
+    throw new Error('Discount cannot exceed the receipt amount.');
+}
+
+if (values.paid > values.total) {
+    throw new Error('Amount received cannot exceed receipt total.');
+}
 
         return {
             saleDate: $('saleDate').value,
@@ -317,6 +332,7 @@ export async function initSales({ db, user, go }) {
             items: cart.map(item => ({ ...item })),
             subtotal: values.subtotal,
             courier: values.courier,
+            discount: values.discount,
             total: values.total,
             paid: values.paid,
             paymentDue: values.due,
@@ -394,7 +410,8 @@ export async function initSales({ db, user, go }) {
 
                     <div class="line"><span>Product Subtotal</span><b>${money(data.subtotal)}</b></div>
                     <div class="line"><span>Courier</span><b>${money(data.courier)}</b></div>
-                    <div class="line total"><span>Grand Total</span><b>${money(data.total)}</b></div>
+<div class="line"><span>Discount</span><b>-${money(data.discount)}</b></div>
+<div class="line total"><span>Grand Total</span><b>${money(data.total)}</b></div>
                     <div class="line"><span>Amount Received</span><b>${money(data.paid)}</b></div>
                     <div class="line"><span>Balance Due</span><b>${money(data.paymentDue)}</b></div>
                     <div class="line"><span>Payment Status</span><b>${escapeHTML(data.paymentStatus)}</b></div>
@@ -516,6 +533,7 @@ export async function initSales({ db, user, go }) {
                     subtotal: data.subtotal,
                     total: data.total,
                     courier: data.courier,
+                    discount: data.discount,
                     costTotal: data.costTotal,
                     paid: data.paid,
                     paymentDue: data.paymentDue,
@@ -540,7 +558,8 @@ export async function initSales({ db, user, go }) {
             $('saleDate').value = getTodayDate();
             $('saleQty').value = 1;
             $('saleCourier').value = 0;
-            $('salePaid').value = 0;
+$('saleDiscount').value = 0;
+$('salePaid').value = 0;
             $('saleProductInfo').classList.add('hidden');
 
             renderCart();

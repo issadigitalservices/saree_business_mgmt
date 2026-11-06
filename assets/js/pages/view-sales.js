@@ -81,7 +81,9 @@ function getProfit(sale) {
             0
         );
 
-    return getSubtotal(sale) - cost;
+    return getSubtotal(sale)
+    - number(sale.discount)
+    - cost;
 }
 
 let salesRecords = [];
