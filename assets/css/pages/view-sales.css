@@ -397,3 +397,17 @@
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+.print-invoice-btn {
+    background: #e8f4f2;
+    color: #147f78;
+    border: none;
+    padding: 9px 13px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.print-invoice-btn:hover {
+    background: #d2eae6;
+}

@@ -151,6 +151,161 @@ export async function initViewSales({ db, user, profile }) {
         });
     }
 
+/* ---------------------------------
+   PRINT INVOICE
+--------------------------------- */
+
+function printInvoice(sale) {
+    const printWindow = window.open('', '_blank', 'width=850,height=750');
+
+    if (!printWindow) {
+        setMessage('Please allow pop-ups to print the invoice.', 'error');
+        return;
+    }
+
+    const due = Math.max(0, number(sale.paymentDue));
+    const invoiceDate = formatDate(sale.createdAt);
+
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>${escapeHTML(sale.invoice || 'Sales Invoice')}</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    padding: 30px;
+                    color: #222;
+                }
+
+                .receipt {
+                    max-width: 700px;
+                    margin: auto;
+                    padding: 30px;
+                    border: 1px solid #ddd;
+                }
+
+                .header {
+                    text-align: center;
+                    border-bottom: 2px solid #167f78;
+                    padding-bottom: 15px;
+                }
+
+                .header h1 {
+                    color: #167f78;
+                    margin-bottom: 5px;
+                }
+
+                .details {
+                    margin: 25px 0;
+                    line-height: 1.9;
+                }
+
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 20px;
+                }
+
+                th, td {
+                    padding: 12px;
+                    border: 1px solid #ddd;
+                    text-align: left;
+                }
+
+                th {
+                    background: #f3f6f8;
+                }
+
+                .totals {
+                    margin-top: 25px;
+                    text-align: right;
+                    line-height: 2;
+                }
+
+                .balance {
+                    font-size: 20px;
+                    font-weight: bold;
+                }
+
+                .footer {
+                    text-align: center;
+                    margin-top: 40px;
+                    color: #777;
+                }
+
+                @media print {
+                    body { padding: 0; }
+                    .receipt { border: none; }
+                }
+            </style>
+        </head>
+
+        <body>
+            <div class="receipt">
+
+                <div class="header">
+                    <h1>SareeDesk</h1>
+                    <p>Sales Invoice</p>
+                    <strong>${escapeHTML(sale.invoice || '-')}</strong>
+                </div>
+
+                <div class="details">
+                    <strong>Date:</strong> ${escapeHTML(invoiceDate)}<br>
+                    <strong>Customer:</strong> ${escapeHTML(sale.customer || '-')}<br>
+                    <strong>Phone:</strong> ${escapeHTML(sale.phone || '-')}<br>
+                    <strong>Order Mode:</strong> ${escapeHTML(sale.orderMode || '-')}<br>
+                    <strong>Payment Mode:</strong> ${escapeHTML(sale.paymentMode || '-')}<br>
+                    <strong>Payment Status:</strong> ${escapeHTML(sale.paymentStatus || '-')}<br>
+                    <strong>Delivery Status:</strong> ${escapeHTML(sale.deliveryStatus || '-')}
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Quantity</th>
+                            <th>Unit Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>${escapeHTML(sale.productName || '-')}</td>
+                            <td>${number(sale.qty)}</td>
+                            <td>${money(sale.price)}</td>
+                            <td>${money(sale.total)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="totals">
+                    <div>Invoice Total: ${money(sale.total)}</div>
+                    <div>Courier Cost: ${money(sale.courier)}</div>
+                    <div>Amount Received: ${money(sale.paid)}</div>
+                    <div class="balance">Balance Due: ${money(due)}</div>
+                </div>
+
+                <div class="footer">
+                    <p>Thank you for shopping with us!</p>
+                    <strong>SareeDesk</strong>
+                </div>
+
+            </div>
+
+            <script>
+                window.onload = function() {
+                    window.print();
+                };
+            <\/script>
+        </body>
+        </html>
+    `);
+
+    printWindow.document.close();
+}
+
+
     /* ---------------------------------
        RENDER SALES
     --------------------------------- */
@@ -231,6 +386,15 @@ export async function initViewSales({ db, user, profile }) {
                                 >
                                     Delete
                                 </button>
+<button
+    type="button"
+    class="print-invoice-btn"
+    data-print-sale="${escapeHTML(sale.id)}"
+>
+    Print
+</button>
+
+
                             ` : ''}
                         </div>
                     </td>
@@ -511,6 +675,7 @@ export async function initViewSales({ db, user, profile }) {
 
         const editButton = event.target.closest('[data-edit-sale]');
         const deleteButton = event.target.closest('[data-delete-sale]');
+        const printButton = event.target.closest('[data-print-sale]');
 
         if (editButton) {
 
@@ -522,6 +687,18 @@ export async function initViewSales({ db, user, profile }) {
 
             return;
         }
+
+        if (printButton) {
+    const sale = salesRecords.find(item =>
+        item.id === printButton.dataset.printSale
+    );
+
+    if (sale) {
+        printInvoice(sale);
+    }
+
+    return;
+}
 
         if (deleteButton) {
 

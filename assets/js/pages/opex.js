@@ -1,3 +1,4 @@
+
 import {
     collection,
     addDoc,
@@ -36,6 +37,7 @@ const escapeHTML = value =>
 function todayLocal() {
     const now = new Date();
     const offset = now.getTimezoneOffset();
+
     return new Date(now.getTime() - offset * 60000)
         .toISOString()
         .slice(0, 10);
@@ -64,13 +66,31 @@ export async function initOpex({ db, user, profile }) {
             <p>Record and manage your business expenses.</p>
         </div>
 
+        <!-- EXPENSE SUMMARY -->
+        <div class="opex-summary">
+
+            <div class="stat">
+                <small>Total Expenses</small>
+                <strong id="totalExpenseAmount">₹0.00</strong>
+            </div>
+
+            <div class="stat">
+                <small>Expense Records</small>
+                <strong id="expenseCount">0</strong>
+            </div>
+
+        </div>
+
+        <!-- ADD / EDIT EXPENSE -->
         <form id="expenseForm" class="panel">
+
             <h3 id="expenseFormTitle">Add Expense</h3>
 
             <div class="formgrid">
 
                 <div class="field">
                     <label for="expenseCategory">Category</label>
+
                     <select id="expenseCategory" name="category" required>
                         ${CATEGORIES.map(category => `
                             <option value="${category}">${category}</option>
@@ -80,6 +100,7 @@ export async function initOpex({ db, user, profile }) {
 
                 <div class="field">
                     <label for="expenseAmount">Amount (₹)</label>
+
                     <input
                         id="expenseAmount"
                         name="amount"
@@ -93,6 +114,7 @@ export async function initOpex({ db, user, profile }) {
 
                 <div class="field full">
                     <label for="expenseDescription">Description</label>
+
                     <input
                         id="expenseDescription"
                         name="description"
@@ -104,6 +126,7 @@ export async function initOpex({ db, user, profile }) {
 
                 <div class="field">
                     <label for="expenseDate">Expense Date</label>
+
                     <input
                         id="expenseDate"
                         name="date"
@@ -116,7 +139,12 @@ export async function initOpex({ db, user, profile }) {
             </div>
 
             <div class="actions expense-actions">
-                <button type="submit" class="primary" id="saveExpense">
+
+                <button
+                    type="submit"
+                    class="primary"
+                    id="saveExpense"
+                >
                     Save Expense
                 </button>
 
@@ -127,18 +155,23 @@ export async function initOpex({ db, user, profile }) {
                 >
                     Cancel Edit
                 </button>
+
             </div>
 
             <p id="expenseMessage" class="expense-message"></p>
+
         </form>
 
+        <!-- EXPENSE HISTORY -->
         <div class="panel expense-history">
+
             <div class="expense-history-heading">
                 <h3>Expense History</h3>
-                <span id="expenseCount">0 records</span>
+                <span id="expenseHistoryCount">0 records</span>
             </div>
 
             <div class="tablewrap">
+
                 <table>
                     <thead>
                         <tr>
@@ -156,6 +189,7 @@ export async function initOpex({ db, user, profile }) {
                         </tr>
                     </tbody>
                 </table>
+
             </div>
         </div>
     `;
@@ -173,32 +207,57 @@ export async function initOpex({ db, user, profile }) {
         message.className = `expense-message ${type}`;
     }
 
+    // UPDATE TOTAL EXPENSE SUMMARY
+    function updateExpenseSummary() {
+
+        const total = expenses.reduce(
+            (sum, expense) => sum + Number(expense.amount || 0),
+            0
+        );
+
+        $('totalExpenseAmount').textContent = money(total);
+
+        $('expenseCount').textContent = expenses.length;
+
+        $('expenseHistoryCount').textContent =
+            `${expenses.length} records`;
+    }
+
+    // RESET FORM
     function resetForm() {
+
         editingExpenseId = null;
 
         form.reset();
 
         $('expenseDate').value = todayLocal();
+
         $('expenseFormTitle').textContent = 'Add Expense';
 
         saveButton.textContent = 'Save Expense';
+
         cancelButton.classList.add('hidden');
 
         message.textContent = '';
     }
 
+    // EDIT FORM
     function startEditing(expense) {
 
         editingExpenseId = expense.id;
 
         $('expenseCategory').value = expense.category || 'Other';
+
         $('expenseAmount').value = Number(expense.amount || 0);
+
         $('expenseDescription').value = expense.description || '';
+
         $('expenseDate').value = expense.date || todayLocal();
 
         $('expenseFormTitle').textContent = 'Edit Expense';
 
         saveButton.textContent = 'Update Expense';
+
         cancelButton.classList.remove('hidden');
 
         message.textContent = '';
@@ -209,10 +268,13 @@ export async function initOpex({ db, user, profile }) {
         });
     }
 
+    // LOAD EXPENSES
     async function loadExpenses() {
 
         tableBody.innerHTML = `
-            <tr><td colspan="5">Loading expenses...</td></tr>
+            <tr>
+                <td colspan="5">Loading expenses...</td>
+            </tr>
         `;
 
         try {
@@ -230,8 +292,8 @@ export async function initOpex({ db, user, profile }) {
                 String(b.date || '').localeCompare(String(a.date || ''))
             );
 
-            $('expenseCount').textContent =
-                `${expenses.length} records`;
+            // Update total and record count
+            updateExpenseSummary();
 
             if (expenses.length === 0) {
 
@@ -246,13 +308,16 @@ export async function initOpex({ db, user, profile }) {
 
             tableBody.innerHTML = expenses.map(expense => `
                 <tr>
+
                     <td>${escapeHTML(expense.date)}</td>
 
                     <td>${escapeHTML(expense.category)}</td>
 
                     <td>${escapeHTML(expense.description)}</td>
 
-                    <td><strong>${money(expense.amount)}</strong></td>
+                    <td>
+                        <strong>${money(expense.amount)}</strong>
+                    </td>
 
                     <td>
                         <div class="expense-row-actions">
@@ -277,6 +342,7 @@ export async function initOpex({ db, user, profile }) {
 
                         </div>
                     </td>
+
                 </tr>
             `).join('');
 
@@ -286,14 +352,15 @@ export async function initOpex({ db, user, profile }) {
 
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="5">Unable to load expense history.</td>
+                    <td colspan="5">
+                        Unable to load expense history.
+                    </td>
                 </tr>
             `;
         }
     }
 
     // SAVE OR UPDATE EXPENSE
-
     form.addEventListener('submit', async event => {
 
         event.preventDefault();
@@ -301,12 +368,22 @@ export async function initOpex({ db, user, profile }) {
         const data = new FormData(form);
 
         const category = String(data.get('category') || '');
-        const description = String(data.get('description') || '').trim();
+
+        const description = String(
+            data.get('description') || ''
+        ).trim();
+
         const amount = Number(data.get('amount'));
+
         const date = String(data.get('date') || '');
 
-        if (!category || !description || !date || amount <= 0) {
-            showMessage('Please enter valid expense details.', 'error');
+        if (!category || !description || !date || !Number.isFinite(amount) || amount <= 0) {
+
+            showMessage(
+                'Please enter valid expense details.',
+                'error'
+            );
+
             return;
         }
 
@@ -348,6 +425,7 @@ export async function initOpex({ db, user, profile }) {
             }
 
             resetForm();
+
             await loadExpenses();
 
         } catch (error) {
@@ -367,11 +445,9 @@ export async function initOpex({ db, user, profile }) {
     });
 
     // CANCEL EDIT
-
     cancelButton.addEventListener('click', resetForm);
 
-    // EDIT AND DELETE BUTTONS
-
+    // EDIT AND DELETE
     tableBody.addEventListener('click', async event => {
 
         const button = event.target.closest('button[data-action]');
@@ -379,26 +455,29 @@ export async function initOpex({ db, user, profile }) {
         if (!button) return;
 
         const expenseId = button.dataset.id;
+
         const action = button.dataset.action;
 
-        const expense = expenses.find(item => item.id === expenseId);
+        const expense = expenses.find(
+            item => item.id === expenseId
+        );
 
         if (!expense) {
+
             showMessage('Expense record not found.', 'error');
+
             return;
         }
 
         // EDIT
-
         if (action === 'edit') {
 
             startEditing(expense);
-            return;
 
+            return;
         }
 
         // DELETE
-
         if (action === 'delete') {
 
             const confirmed = window.confirm(
@@ -411,6 +490,7 @@ export async function initOpex({ db, user, profile }) {
             if (!confirmed) return;
 
             button.disabled = true;
+
             button.textContent = 'Deleting...';
 
             try {
@@ -437,6 +517,7 @@ export async function initOpex({ db, user, profile }) {
                 );
 
                 button.disabled = false;
+
                 button.textContent = 'Delete';
 
             }
@@ -444,5 +525,6 @@ export async function initOpex({ db, user, profile }) {
 
     });
 
+    // INITIAL LOAD
     await loadExpenses();
 }
