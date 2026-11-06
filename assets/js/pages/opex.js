@@ -19,6 +19,13 @@ const CATEGORIES = [
     'Other'
 ];
 
+const SALARY_STAFF = [
+    'Jaya',
+    'Balu',
+    'Contribution',
+    'Other'
+];
+
 const money = value =>
     '₹' + Number(value || 0).toLocaleString('en-IN', {
         minimumFractionDigits: 2,
@@ -97,6 +104,17 @@ export async function initOpex({ db, user, profile }) {
                         `).join('')}
                     </select>
                 </div>
+
+                <div class="field hidden" id="salaryStaffField">
+    <label for="salaryStaff">Staff Name</label>
+
+    <select id="salaryStaff">
+        <option value="">Select Staff</option>
+        ${SALARY_STAFF.map(name => `
+            <option value="${name}">${name}</option>
+        `).join('')}
+    </select>
+</div>
 
                 <div class="field">
                     <label for="expenseAmount">Amount (₹)</label>
@@ -202,6 +220,40 @@ export async function initOpex({ db, user, profile }) {
     const message = $('expenseMessage');
     const tableBody = $('expenseTableBody');
 
+    // SHOW STAFF DROPDOWN ONLY FOR SALARY
+function updateSalaryFields() {
+    const isSalary = $('expenseCategory').value === 'Salary';
+
+    $('salaryStaffField').classList.toggle('hidden', !isSalary);
+
+    $('salaryStaff').required = isSalary;
+
+    if (isSalary) {
+        updateSalaryDescription();
+    } else {
+        $('expenseDescription').readOnly = false;
+        $('expenseDescription').placeholder = 'Enter expense details';
+    }
+}
+
+// AUTOMATIC SALARY DESCRIPTION
+function updateSalaryDescription() {
+    const staff = $('salaryStaff').value;
+
+    $('expenseDescription').value =
+        staff ? `Salary of ${staff}` : '';
+
+    $('expenseDescription').readOnly = true;
+}
+
+$('expenseCategory').addEventListener('change', () => {
+    updateSalaryFields();
+});
+
+$('salaryStaff').addEventListener('change', () => {
+    updateSalaryDescription();
+});
+
     function showMessage(text, type = 'success') {
         message.textContent = text;
         message.className = `expense-message ${type}`;
@@ -247,6 +299,14 @@ export async function initOpex({ db, user, profile }) {
         editingExpenseId = expense.id;
 
         $('expenseCategory').value = expense.category || 'Other';
+
+$('salaryStaff').value = expense.staffName || '';
+
+updateSalaryFields();
+
+if (expense.category === 'Salary') {
+    updateSalaryDescription();
+}
 
         $('expenseAmount').value = Number(expense.amount || 0);
 
@@ -367,11 +427,15 @@ export async function initOpex({ db, user, profile }) {
 
         const data = new FormData(form);
 
-        const category = String(data.get('category') || '');
+                const category = String(data.get('category') || '');
 
-        const description = String(
-            data.get('description') || ''
-        ).trim();
+const staffName = category === 'Salary'
+    ? $('salaryStaff').value
+    : '';
+
+const description = category === 'Salary'
+    ? (staffName ? `Salary of ${staffName}` : '')
+    : String(data.get('description') || '').trim();
 
         const amount = Number(data.get('amount'));
 
@@ -388,13 +452,14 @@ export async function initOpex({ db, user, profile }) {
         }
 
         const expenseData = {
-            category,
-            description,
-            amount,
-            date,
-            updatedAt: serverTimestamp(),
-            updatedBy: user.uid
-        };
+    category,
+    staffName,
+    description,
+    amount,
+    date,
+    updatedAt: serverTimestamp(),
+    updatedBy: user.uid
+};
 
         saveButton.disabled = true;
 
