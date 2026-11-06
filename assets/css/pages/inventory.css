@@ -334,3 +334,111 @@
         margin-left: 0;
     }
 }
+
+/* PRODUCT IMAGE IN INVENTORY */
+
+.inventory-product-image {
+    width: 58px;
+    height: 68px;
+    object-fit: cover;
+    border-radius: 7px;
+    border: 1px solid #e2e8f0;
+    display: block;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.inventory-product-image:hover {
+    transform: scale(1.08);
+}
+
+.inventory-image-cell {
+    min-width: 85px;
+}
+
+.inventory-date {
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+.no-product-image {
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+/* FIX INVENTORY TABLE ALIGNMENT */
+
+.inventory-page .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+.inventory-page .data-table th,
+.inventory-page .data-table td {
+    vertical-align: middle;
+}
+
+.inventory-page .data-table td.inventory-actions {
+    display: table-cell !important;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.inventory-page .inventory-actions button {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 5px;
+}
+
+.inventory-page .inventory-date {
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.inventory-page .inventory-image-cell {
+    width: 100px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.inventory-page .inventory-product-image {
+    width: 58px;
+    height: 68px;
+    object-fit: cover;
+    display: block;
+    margin: auto;
+}
+
+.inventory-page .data-table tbody tr {
+    height: 88px;
+}
+
+/* FINAL FIX: INVENTORY ACTION COLUMN */
+
+table td.inventory-actions {
+    display: table-cell !important;
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+    height: auto !important;
+    background: transparent !important;
+    border-bottom: 1px solid #e8edf3 !important;
+}
+
+table td.inventory-actions button {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    margin: 0 4px 0 0 !important;
+    float: none !important;
+}
+
+table tbody tr td {
+    vertical-align: middle !important;
+    border-bottom: 1px solid #e8edf3;
+}
+
+table {
+    border-collapse: collapse !important;
+}

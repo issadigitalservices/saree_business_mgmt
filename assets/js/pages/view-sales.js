@@ -49,6 +49,18 @@ const formatDate = (timestamp) => {
     return date.toLocaleDateString('en-IN');
 };
 
+function formatSaleDate(sale) {
+    if (sale.saleDate) {
+        const parts = String(sale.saleDate).split('-');
+
+        if (parts.length === 3) {
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+    }
+
+    return formatDate(sale.createdAt);
+}
+
 let salesRecords = [];
 let productsMap = new Map();
 let activeFilter = 'all';
@@ -186,7 +198,7 @@ function printInvoice(sale) {
     }
 
     const due = Math.max(0, number(sale.paymentDue));
-    const invoiceDate = formatDate(sale.createdAt);
+    const invoiceDate = formatSaleDate(sale);
 
     printWindow.document.write(`
         <!DOCTYPE html>
@@ -372,7 +384,7 @@ function printInvoice(sale) {
                 <tr>
                     <td>${escapeHTML(sale.invoice || '-')}</td>
 
-                    <td>${formatDate(sale.createdAt)}</td>
+                    <td>${formatSaleDate(sale)}</td>
 
                     <td>${escapeHTML(sale.customer || '-')}</td>
 
@@ -681,6 +693,17 @@ function printInvoice(sale) {
 
         $('editCustomer').value = sale.customer || '';
         $('editPhone').value = sale.phone || '';
+        $('editSaleDate').value =
+    sale.saleDate ||
+    (sale.createdAt?.toDate
+        ? (() => {
+            const d = sale.createdAt.toDate();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        })()
+        : new Date().toISOString().slice(0, 10));
         $('editProductName').value = sale.productName || '';
 
         $('editQty').value = number(sale.qty) || 1;
@@ -911,7 +934,8 @@ function printInvoice(sale) {
                 transaction.update(saleRef, {
 
                     customer: $('editCustomer').value.trim(),
-                    phone: $('editPhone').value.trim(),
+phone: $('editPhone').value.trim(),
+saleDate: $('editSaleDate').value,
 
                     qty: values.qty,
                     price: values.price,

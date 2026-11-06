@@ -31,6 +31,16 @@ const escapeHTML = (value) => {
     })[character]);
 };
 
+function getTodayDate() {
+    const today = new Date();
+
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+}
+
 let products = [];
 let selectedProduct = null;
 let lastReceiptData = null;
@@ -38,6 +48,7 @@ let lastReceiptData = null;
 export async function initSales({ db, user, go }) {
 
     const form = $('salesForm');
+    $('saleDate').value = getTodayDate();
 
     if (!form) return;
 
@@ -252,7 +263,8 @@ export async function initSales({ db, user, go }) {
         }
 
         return {
-            customer: $('saleCustomer').value.trim(),
+    saleDate: $('saleDate').value,
+    customer: $('saleCustomer').value.trim(),
             phone: $('salePhone').value.trim(),
             productName: selectedProduct.name || '',
             productCode: selectedProduct.code || '',
@@ -355,6 +367,11 @@ export async function initSales({ db, user, go }) {
                         <span>Invoice</span>
                         <b>${escapeHTML(invoice)}</b>
                     </div>
+
+                    <div class="line">
+    <span>Sale Date</span>
+    <b>${escapeHTML(data.saleDate || '-')}</b>
+</div>
 
                     <div class="line">
                         <span>Customer</span>
@@ -532,8 +549,9 @@ export async function initSales({ db, user, go }) {
                 });
 
                 transaction.set(saleRef, {
-                    invoice,
-                    customer: data.customer,
+    invoice,
+    saleDate: data.saleDate,
+    customer: data.customer,
                     phone: data.phone,
                     productId: selectedProduct.id,
                     productName: latestProduct.name || '',
@@ -565,6 +583,7 @@ export async function initSales({ db, user, go }) {
             await loadProducts();
 
             form.reset();
+            $('saleDate').value = getTodayDate();
 
             selectedProduct = null;
             $('saleProductInfo').classList.add('hidden');

@@ -24,6 +24,30 @@ const money = value => {
     }).format(Number(value) || 0);
 };
 
+
+function formatProductDate(product) {
+    let dateValue = product.productDate;
+
+    // Fallback for older products without productDate
+    if (!dateValue && product.createdAt?.toDate) {
+        const date = product.createdAt.toDate();
+
+        dateValue = [
+            date.getFullYear(),
+            String(date.getMonth() + 1).padStart(2, '0'),
+            String(date.getDate()).padStart(2, '0')
+        ].join('-');
+    }
+
+    if (!dateValue) return '-';
+
+    const parts = String(dateValue).split('-');
+
+    if (parts.length !== 3) return '-';
+
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+}
+
 const escapeHTML = value => {
     return String(value ?? '').replace(/[&<>"']/g, character => ({
         '&': '&amp;',
@@ -138,80 +162,112 @@ export async function initInventory({
     ===================================== */
 
     function renderInventory(products) {
-        const countElement = $('inventoryCount');
 
-        if (countElement) {
-            countElement.textContent =
-                `${products.length} product${products.length === 1 ? '' : 's'}`;
-        }
+    $('inventoryCount').textContent =
+        `${products.length} product${products.length === 1 ? '' : 's'}`;
 
-        if (!products.length) {
-            tableBody.innerHTML = `
-                <tr>
-                    <td colspan="7" class="empty-state">
-                        No products found.
-                    </td>
-                </tr>
-            `;
-            return;
-        }
+    if (!products.length) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="9" class="empty-state">
+                    No products found.
+                </td>
+            </tr>
+        `;
+        return;
+    }
 
-        tableBody.innerHTML = products.map(product => {
-            const unitCost = Number(product.unitCost) || 0;
-            const sellingPrice = Number(product.price) || 0;
-            const stock = Number(product.stock) || 0;
+    tableBody.innerHTML = products.map(product => {
 
-            const profit = sellingPrice - unitCost;
+        const unitCost = Number(product.unitCost) || 0;
+        const sellingPrice = Number(product.price) || 0;
+        const stock = Number(product.stock) || 0;
+        const profit = sellingPrice - unitCost;
 
-            const profitClass = profit >= 0
-                ? 'profit-positive'
-                : 'profit-negative';
+        const profitClass = profit >= 0
+            ? 'profit-positive'
+            : 'profit-negative';
 
-            const stockClass = stock <= 2 ? 'stock-low' : '';
+        const stockClass = stock <= 2
+            ? 'stock-low'
+            : '';
 
-            return `
-                <tr>
-                    <td>${escapeHTML(product.code || '-')}</td>
+        const imageUrl = product.imageUrl || '';
 
-                    <td class="product-name">
-                        ${escapeHTML(product.name || 'Unnamed Product')}
-                    </td>
+        const imageHTML = imageUrl
+            ? `
+                <a
+                    href="${escapeHTML(imageUrl)}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="View full product image"
+                >
+                    <img
+                        src="${escapeHTML(imageUrl)}"
+                        alt="${escapeHTML(product.name || 'Product image')}"
+                        class="inventory-product-image"
+                        loading="lazy"
+                    >
+                </a>
+            `
+            : `<span class="no-product-image">No Image</span>`;
 
-                    <td>${money(unitCost)}</td>
+        return `
+            <tr>
 
-                    <td>${money(sellingPrice)}</td>
+                <td>${escapeHTML(product.code || '-')}</td>
 
-                    <td class="${profitClass}">
-                        ${money(profit)}
-                    </td>
+                <td class="product-name">
+                    ${escapeHTML(product.name || 'Unnamed Product')}
+                </td>
 
-                    <td class="${stockClass}">
-                        ${stock}
-                    </td>
+                <td>${money(unitCost)}</td>
 
-                    <td class="inventory-actions">
+                <td>${money(sellingPrice)}</td>
+
+                <td class="${profitClass}">
+                    ${money(profit)}
+                </td>
+
+                <td class="${stockClass}">
+                    ${stock}
+                </td>
+
+                <td class="inventory-actions">
+
+                    <button
+                        type="button"
+                        class="edit-product-btn"
+                        data-edit-id="${escapeHTML(product.id)}"
+                    >
+                        Edit
+                    </button>
+
+                    ${isAdmin ? `
                         <button
                             type="button"
-                            class="edit-product-btn"
-                            data-edit-id="${escapeHTML(product.id)}"
+                            class="delete-product-btn"
+                            data-delete-id="${escapeHTML(product.id)}"
                         >
-                            Edit
+                            Delete
                         </button>
+                    ` : ''}
 
-                        ${isAdmin ? `
-                            <button
-                                type="button"
-                                class="delete-product-btn"
-                                data-delete-id="${escapeHTML(product.id)}"
-                            >
-                                Delete
-                            </button>
-                        ` : ''}
-                    </td>
-                </tr>
-            `;
-        }).join('');
-    }
+                </td>
+
+                <td class="inventory-date">
+                    ${formatProductDate(product)}
+                </td>
+
+                <td class="inventory-image-cell">
+                    ${imageHTML}
+                </td>
+
+            </tr>
+        `;
+
+    }).join('');
+}
 
     /* =====================================
        APPLY SEARCH AND FILTER
@@ -327,7 +383,7 @@ export async function initInventory({
 
         tableBody.innerHTML = `
             <tr>
-                <td colspan="7" class="empty-state">
+                <td colspan="9" class="empty-state">
                     Loading inventory...
                 </td>
             </tr>
