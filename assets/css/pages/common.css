@@ -680,3 +680,33 @@ th {
         font-size: 10px;
     }
 }
+
+/* AARABHI ONLINE THREADS BRANDING */
+
+.brand-logo {
+    display: block;
+    object-fit: contain;
+}
+
+.login-logo {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 15px;
+}
+
+.sidebar-logo {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.brand b {
+    font-size: 15px;
+    line-height: 1.3;
+}
