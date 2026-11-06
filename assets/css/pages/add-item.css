@@ -1,0 +1,147 @@
+/* =====================================
+   SAREEDESK - ADD ITEM PAGE
+===================================== */
+
+.add-item-page {
+    width: 100%;
+}
+
+.form-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px;
+    margin-top: 18px;
+}
+
+.form-section {
+    padding-bottom: 22px;
+    margin-bottom: 22px;
+    border-bottom: 1px solid var(--line);
+}
+
+.form-section:last-of-type {
+    border-bottom: 0;
+}
+
+.form-section h3 {
+    font: 700 16px Manrope, sans-serif;
+    color: var(--ink);
+    margin: 0 0 17px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.form-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.form-grid input,
+.form-grid select {
+    width: 100%;
+    min-width: 0;
+    padding: 11px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+    font-size: 14px;
+    outline: none;
+}
+
+.form-grid input:focus,
+.form-grid select:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px #0d948810;
+}
+
+.form-grid input[readonly] {
+    background: #f4f7f8;
+    color: #52616b;
+}
+
+.form-grid small {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 400;
+}
+
+.form-grid .full {
+    grid-column: 1 / -1;
+}
+
+.image-preview-wrap {
+    min-height: 0;
+}
+
+.image-preview {
+    width: 130px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 9px;
+    border: 1px solid var(--line);
+}
+
+.form-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 5px;
+}
+
+.form-actions button {
+    min-width: 130px;
+}
+
+.form-message {
+    margin: 14px 0 0;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.form-message.error {
+    color: #dc2626;
+}
+
+.form-message.success {
+    color: #15803d;
+}
+
+.hidden {
+    display: none !important;
+}
+
+@media (max-width: 600px) {
+    .form-card {
+        padding: 15px;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 13px;
+    }
+
+    .form-grid .full {
+        grid-column: auto;
+    }
+
+    .form-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .form-actions button {
+        width: 100%;
+    }
+}

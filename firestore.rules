@@ -1,17 +1,129 @@
 rules_version = '2';
+
 service cloud.firestore {
- match /databases/{database}/documents {
-  function signedIn(){return request.auth != null;}
-  function active(){return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.active == true;}
-  function admin(){return active() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';}
-  function staff(){return active() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'staff';}
-  function team(){return admin() || staff();}
-  match /users/{uid}{allow read:if admin() || (signedIn() && request.auth.uid==uid);allow create,update,delete:if admin();}
-  match /products/{id}{allow read,create,update:if team();allow delete:if admin();}
-  match /sales/{id}{allow read,create,update:if team();allow delete:if admin();}
-  match /expenses/{id}{allow create:if team();allow read,update,delete:if admin();}
-  match /customers/{id}{allow read,create,update:if team();allow delete:if admin();}
-  match /stockMovements/{id}{allow read,create:if team();allow update,delete:if admin();}
-  match /settings/{id}{allow read,write:if admin();}
- }
+  match /databases/{database}/documents {
+
+    /* =================================
+       USER ACCESS HELPERS
+    ================================= */
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userProfile() {
+      return get(
+        /databases/$(database)/documents/users/$(request.auth.uid)
+      ).data;
+    }
+
+    function isActiveUser() {
+      return signedIn()
+        && exists(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        )
+        && userProfile().active == true;
+    }
+
+    function isAdmin() {
+      return isActiveUser()
+        && userProfile().role == 'admin';
+    }
+
+    function isStaff() {
+      return isActiveUser()
+        && userProfile().role == 'staff';
+    }
+
+    function isAuthorizedUser() {
+      return isAdmin() || isStaff();
+    }
+
+
+    /* =================================
+       USER PROFILES
+    ================================= */
+
+    match /users/{userId} {
+
+      // Users can read their own profile.
+      // Admin can read all user profiles.
+      allow get: if signedIn()
+        && (request.auth.uid == userId || isAdmin());
+
+      allow list: if isAdmin();
+
+      // Only Admin can create or update staff profiles.
+      allow create, update: if isAdmin()
+        && request.resource.data.role == 'staff';
+
+      allow delete: if isAdmin()
+        && resource.data.role == 'staff';
+
+    }
+
+
+    /* =================================
+       PRODUCTS / INVENTORY
+    ================================= */
+
+    match /products/{productId} {
+
+      allow read: if isAuthorizedUser();
+
+      allow create, update, delete: if isAuthorizedUser();
+
+    }
+
+
+    /* =================================
+       SALES
+    ================================= */
+
+    match /sales/{saleId} {
+
+      allow read: if isAuthorizedUser();
+
+      allow create, update: if isAuthorizedUser();
+
+      allow delete: if isAdmin();
+
+    }
+
+
+    /* =================================
+       PRODUCT CODE COUNTERS
+    ================================= */
+
+    match /counters/{counterId} {
+
+      allow read, write: if isAuthorizedUser();
+
+    }
+
+
+    /* =================================
+       OPERATING EXPENSES
+    ================================= */
+
+    match /expenses/{expenseId} {
+
+      allow read, create, update: if isAdmin();
+
+      allow delete: if isAdmin();
+
+    }
+
+
+    /* =================================
+       DEFAULT DENY
+    ================================= */
+
+    match /{document=**} {
+
+      allow read, write: if false;
+
+    }
+
+  }
 }

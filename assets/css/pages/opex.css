@@ -1,0 +1,167 @@
+/* =====================================
+   SAREEDESK - OPEX
+===================================== */
+
+.opex-page {
+    width: 100%;
+}
+
+.opex-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin: 20px 0;
+}
+
+.opex-summary .stat {
+    padding: 17px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+}
+
+.opex-summary small {
+    display: block;
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+.opex-summary strong {
+    color: var(--ink);
+    font: 700 21px Manrope, sans-serif;
+}
+
+.opex-page .form-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px;
+}
+
+.opex-page .form-section {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 20px;
+    margin-bottom: 18px;
+}
+
+.opex-page .form-section h3 {
+    margin: 0 0 16px;
+    font: 700 16px Manrope, sans-serif;
+    color: var(--ink);
+}
+
+.opex-page .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.opex-page .form-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.opex-page .form-grid input,
+.opex-page .form-grid select {
+    width: 100%;
+    min-width: 0;
+    padding: 11px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font: inherit;
+    font-size: 14px;
+}
+
+.opex-page .form-grid .full {
+    grid-column: 1 / -1;
+}
+
+.opex-page .form-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.opex-page .form-message {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.opex-page .form-message.error {
+    color: #dc2626;
+}
+
+.opex-page .form-message.success {
+    color: #15803d;
+}
+
+.opex-history {
+    margin-top: 22px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    overflow: hidden;
+}
+
+.opex-history .table-heading {
+    display: flex;
+    justify-content: space-between;
+    padding: 17px;
+    border-bottom: 1px solid var(--line);
+}
+
+.opex-history .table-heading h3 {
+    margin: 0;
+    font: 700 15px Manrope, sans-serif;
+}
+
+.opex-history .table-heading span {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.opex-history .table-wrap {
+    overflow-x: auto;
+}
+
+.opex-history .data-table {
+    width: 100%;
+    min-width: 600px;
+    border-collapse: collapse;
+}
+
+.opex-history .data-table th,
+.opex-history .data-table td {
+    padding: 13px;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+}
+
+.opex-history .data-table th {
+    background: #f8fafb;
+    color: var(--muted);
+}
+
+@media (max-width: 600px) {
+    .opex-page .form-card {
+        padding: 15px;
+    }
+
+    .opex-page .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .opex-page .form-grid .full {
+        grid-column: auto;
+    }
+
+    .opex-page .form-actions button {
+        width: 100%;
+    }
+}

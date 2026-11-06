@@ -1,0 +1,90 @@
+<div class="staff-page">
+
+    <div class="intro">
+        <h3>Staff Management</h3>
+        <p>Activate and manage staff access to SareeDesk.</p>
+    </div>
+
+    <div class="staff-info">
+        <strong>Before adding staff</strong>
+        <p>
+            Create the staff member's account in Firebase Authentication.
+            Then enter the same UID and email below to activate access.
+        </p>
+    </div>
+
+    <form id="staffForm" class="form-card">
+
+        <div class="form-section">
+            <h3>Activate Staff Account</h3>
+
+            <div class="form-grid">
+
+                <label>
+                    Staff Email
+                    <input
+                        id="staffEmail"
+                        type="email"
+                        required
+                        placeholder="staff@example.com"
+                    >
+                </label>
+
+                <label>
+                    Firebase Authentication UID
+                    <input
+                        id="staffUid"
+                        type="text"
+                        required
+                        placeholder="Enter Firebase Auth UID"
+                    >
+                </label>
+
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" id="activateStaffBtn" class="primary">
+                Activate Staff
+            </button>
+        </div>
+
+        <p id="staffMessage" class="form-message"></p>
+
+    </form>
+
+    <div class="table-card staff-history">
+
+        <div class="table-heading">
+            <h3>Staff Accounts</h3>
+            <span id="staffCount">0 staff</span>
+        </div>
+
+        <div class="table-wrap">
+
+            <table class="data-table">
+
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Account Created</th>
+                    </tr>
+                </thead>
+
+                <tbody id="staffTableBody">
+                    <tr>
+                        <td colspan="4" class="empty-state">
+                            Loading staff...
+                        </td>
+                    </tr>
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>

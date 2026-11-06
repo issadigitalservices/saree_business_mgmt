@@ -1,0 +1,160 @@
+<div class="sales-page">
+
+    <div class="intro">
+        <h3>Create New Sale</h3>
+        <p>Record customer orders and manage payments and delivery.</p>
+    </div>
+
+    <form id="salesForm" class="form-card">
+
+        <div class="form-section">
+            <h3>Customer Details</h3>
+
+            <div class="form-grid">
+                <label>
+                    Customer Name
+                    <input id="saleCustomer" type="text" required placeholder="Customer name">
+                </label>
+
+                <label>
+                    Phone Number
+                    <input id="salePhone" type="tel" placeholder="Phone number">
+                </label>
+
+                <label>
+                    Order Mode
+                    <select id="saleOrderMode">
+                        <option value="Online">Online</option>
+                        <option value="WhatsApp">WhatsApp</option>
+                        <option value="Instagram">Instagram</option>
+                        <option value="Walk-in">Walk-in</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </label>
+
+                <label>
+                    Payment Mode
+                    <select id="salePaymentMode">
+                        <option value="Cash">Cash</option>
+                        <option value="UPI">UPI</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Card">Card</option>
+                        <option value="COD">Cash on Delivery</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>Product Details</h3>
+
+            <div class="form-grid">
+
+                <label class="full">
+                    Select Product
+                    <select id="saleProduct" required>
+                        <option value="">Loading products...</option>
+                    </select>
+                </label>
+
+                <div id="saleProductInfo" class="sale-product-info full hidden">
+                    <span>Product Code: <b id="saleProductCode">-</b></span>
+                    <span>Available Stock: <b id="saleAvailableStock">0</b></span>
+                    <span>Unit Cost: <b id="saleUnitCost">₹0</b></span>
+                </div>
+
+                <label>
+                    Quantity
+                    <input id="saleQty" type="number" min="1" step="1" value="1" required>
+                </label>
+
+                <label>
+                    Selling Price / Unit (₹)
+                    <input id="salePrice" type="number" min="0.01" step="0.01" required>
+                </label>
+
+                <label>
+                    Courier Cost (₹)
+                    <input id="saleCourier" type="number" min="0" step="0.01" value="0">
+                </label>
+
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>Payment Details</h3>
+
+            <div class="form-grid">
+
+                <label>
+                    Payment Status
+                    <select id="salePaymentStatus">
+                        <option value="Paid">Paid</option>
+                        <option value="Partial">Partial</option>
+                        <option value="Due">Due</option>
+                    </select>
+                </label>
+
+                <label>
+                    Delivery Status
+                    <select id="saleDeliveryStatus">
+                        <option value="Pending">Pending</option>
+                        <option value="Processing">Processing</option>
+                        <option value="Shipped">Shipped</option>
+                        <option value="Delivered">Delivered</option>
+                    </select>
+                </label>
+
+                <label>
+                    Amount Received (₹)
+                    <input id="salePaid" type="number" min="0" step="0.01" value="0">
+                </label>
+
+            </div>
+        </div>
+
+        <div class="sale-calculation">
+
+            <div>
+                <span>Subtotal</span>
+                <strong id="saleSubtotal">₹0.00</strong>
+            </div>
+
+            <div>
+                <span>Courier</span>
+                <strong id="saleCourierTotal">₹0.00</strong>
+            </div>
+
+            <div>
+                <span>Total Amount</span>
+                <strong id="saleGrandTotal">₹0.00</strong>
+            </div>
+
+            <div>
+                <span>Amount Received</span>
+                <strong id="saleReceivedTotal">₹0.00</strong>
+            </div>
+
+            <div class="due-row">
+                <span>Balance Due</span>
+                <strong id="saleDueTotal">₹0.00</strong>
+            </div>
+
+        </div>
+
+        <div class="form-actions">
+            <button type="button" id="printSaleReceipt" class="secondary">
+                Print Receipt
+            </button>
+
+            <button type="submit" id="saveSaleBtn" class="primary">
+                Save Sale
+            </button>
+        </div>
+
+        <p id="saleMessage" class="form-message"></p>
+
+    </form>
+
+</div>

@@ -1,0 +1,165 @@
+/* =====================================
+   SAREEDESK - STAFF MANAGEMENT
+===================================== */
+
+.staff-page {
+    width: 100%;
+}
+
+.staff-info {
+    padding: 16px;
+    margin: 18px 0;
+    border: 1px solid #d9e9ee;
+    border-radius: 10px;
+    background: #f2f8fa;
+}
+
+.staff-info strong {
+    color: var(--ink);
+    font-size: 13px;
+}
+
+.staff-info p {
+    margin: 7px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.staff-page .form-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px;
+}
+
+.staff-page .form-section {
+    padding-bottom: 20px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--line);
+}
+
+.staff-page .form-section h3 {
+    margin: 0 0 16px;
+    font: 700 16px Manrope, sans-serif;
+    color: var(--ink);
+}
+
+.staff-page .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.staff-page .form-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.staff-page .form-grid input {
+    width: 100%;
+    min-width: 0;
+    padding: 11px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+}
+
+.staff-page .form-grid input:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px #0d948810;
+}
+
+.staff-page .form-message {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.staff-page .form-message.error {
+    color: #dc2626;
+}
+
+.staff-page .form-message.success {
+    color: #15803d;
+}
+
+.staff-history {
+    margin-top: 22px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    overflow: hidden;
+}
+
+.staff-history .table-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 17px;
+    border-bottom: 1px solid var(--line);
+}
+
+.staff-history .table-heading h3 {
+    margin: 0;
+    font: 700 15px Manrope, sans-serif;
+}
+
+.staff-history .table-heading span {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.staff-history .table-wrap {
+    overflow-x: auto;
+}
+
+.staff-history .data-table {
+    width: 100%;
+    min-width: 550px;
+    border-collapse: collapse;
+}
+
+.staff-history .data-table th,
+.staff-history .data-table td {
+    padding: 13px;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+}
+
+.staff-history .data-table th {
+    background: #f8fafb;
+    color: var(--muted);
+}
+
+.staff-history .active-status {
+    color: #15803d;
+    font-weight: 700;
+}
+
+.staff-history .inactive-status {
+    color: #dc2626;
+    font-weight: 700;
+}
+
+@media (max-width: 600px) {
+    .staff-page .form-card {
+        padding: 15px;
+    }
+
+    .staff-page .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .staff-page .form-actions button {
+        width: 100%;
+    }
+}

@@ -1,0 +1,145 @@
+<div class="add-item-page">
+
+    <div class="intro">
+        <h3 id="addItemTitle">Add New Item</h3>
+        <p>Add a saree to inventory or record a direct sale.</p>
+    </div>
+
+    <form id="addItemForm" class="form-card" novalidate>
+
+        <div class="form-section">
+            <h3>Product Information</h3>
+
+            <div class="form-grid">
+
+                <label>
+                    Product Code
+                    <input id="productCode" type="text" readonly placeholder="Auto generated">
+                </label>
+
+                <label>
+                    Destination
+                    <select id="destination" required>
+                        <option value="stock">To Stock</option>
+                        <option value="sale">To Sale (Direct Sale)</option>
+                    </select>
+                </label>
+
+                <label class="full">
+                    Product Name
+                    <input id="productName" type="text" required placeholder="Enter saree name">
+                </label>
+
+                <label class="full">
+                    Product Image
+                    <input id="productImage" type="file" accept="image/*">
+                    <small>Maximum image size: 5 MB</small>
+                </label>
+
+                <div class="image-preview-wrap full">
+                    <img id="imagePreview" class="image-preview hidden" alt="Product preview">
+                </div>
+
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>Cost and Selling Details</h3>
+
+            <div class="form-grid">
+
+                <label>
+                    Shipping & Packaging Cost (₹)
+                    <input id="shippingPackagingCost" type="number" min="0" step="0.01" value="0" required>
+                </label>
+
+                <label>
+                    Product Cost (₹)
+                    <input id="purchaseCost" type="number" min="0" step="0.01" value="0" required>
+                </label>
+
+                <label>
+                    Total Unit Cost (₹)
+                    <input id="unitCost" type="number" readonly>
+                </label>
+
+                <label>
+                    Selling Price (₹)
+                    <input id="sellingPrice" type="number" min="0" step="0.01" required>
+                </label>
+
+                <label>
+                    Profit Per Unit (₹)
+                    <input id="totalProfit" type="number" readonly>
+                </label>
+
+                <label id="stockField">
+                    Stock Quantity
+                    <input id="stockQuantity" type="number" min="0" step="1" value="1">
+                </label>
+
+            </div>
+        </div>
+
+        <div id="directSaleSection" class="form-section hidden">
+            <h3>Direct Sale Details</h3>
+
+            <div class="form-grid">
+
+                <label>
+                    Customer Name
+                    <input id="directCustomer" type="text" placeholder="Customer name">
+                </label>
+
+                <label>
+                    Customer Phone
+                    <input id="directPhone" type="tel" placeholder="Phone number">
+                </label>
+
+                <label>
+                    Quantity
+                    <input id="directQuantity" type="number" min="1" step="1" value="1">
+                </label>
+
+                <label>
+                    Amount Received (₹)
+                    <input id="directPaid" type="number" min="0" step="0.01" value="0">
+                </label>
+
+                <label>
+                    Payment Mode
+                    <select id="directPaymentMode">
+                        <option value="Cash">Cash</option>
+                        <option value="UPI">UPI</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Card">Card</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </label>
+
+                <label>
+                    Delivery Status
+                    <select id="directDeliveryStatus">
+                        <option value="Pending">Pending</option>
+                        <option value="Processing">Processing</option>
+                        <option value="Delivered">Delivered</option>
+                    </select>
+                </label>
+
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button id="saveItemBtn" class="primary" type="submit">
+                Save Item
+            </button>
+            <button id="cancelEditBtn" class="secondary hidden" type="button">
+                Cancel Edit
+            </button>
+        </div>
+
+        <p id="addItemMsg" class="form-message" role="status"></p>
+
+    </form>
+
+</div>

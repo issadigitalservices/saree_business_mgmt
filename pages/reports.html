@@ -1,0 +1,111 @@
+<div class="reports-page">
+
+    <div class="intro">
+        <h3>Business Reports</h3>
+        <p>Review your sales, expenses, inventory and estimated profitability.</p>
+    </div>
+
+    <div id="reportsLoading" class="report-status">
+        Loading business reports...
+    </div>
+
+    <div id="reportsContent" class="hidden">
+
+        <div class="report-stats">
+
+            <div class="report-stat">
+                <small>Products Sold</small>
+                <strong id="reportProductsSold">0</strong>
+                <span>Total quantity sold</span>
+            </div>
+
+            <div class="report-stat">
+                <small>Revenue</small>
+                <strong id="reportRevenue">₹0</strong>
+                <span>Sales value</span>
+            </div>
+
+            <div class="report-stat">
+                <small>Cost of Goods Sold</small>
+                <strong id="reportCOGS">₹0</strong>
+                <span>Product cost</span>
+            </div>
+
+            <div class="report-stat">
+                <small>Operating Expenses</small>
+                <strong id="reportOPEX">₹0</strong>
+                <span>Business expenses</span>
+            </div>
+
+            <div class="report-stat">
+                <small>Courier Costs</small>
+                <strong id="reportCourier">₹0</strong>
+                <span>Sales courier charges</span>
+            </div>
+
+            <div class="report-stat highlight-stat">
+                <small>Estimated Net Profit</small>
+                <strong id="reportNetProfit">₹0</strong>
+                <span>After recorded costs and expenses</span>
+            </div>
+
+            <div class="report-stat">
+                <small>Outstanding Payments</small>
+                <strong id="reportOutstanding">₹0</strong>
+                <span>Pending customer payments</span>
+            </div>
+
+            <div class="report-stat">
+                <small>Available Units</small>
+                <strong id="reportAvailableUnits">0</strong>
+                <span>Current inventory quantity</span>
+            </div>
+
+        </div>
+
+        <div class="report-panels">
+
+            <div class="report-panel">
+                <div class="report-panel-heading">
+                    <h3>Financial Summary</h3>
+                    <small>Recorded business amounts</small>
+                </div>
+
+                <div id="financialBars" class="financial-bars"></div>
+            </div>
+
+            <div class="report-panel">
+                <div class="report-panel-heading">
+                    <h3>Cost & Profit Share</h3>
+                    <small>Based on recorded financial values</small>
+                </div>
+
+                <div class="donut-layout">
+                    <div id="costProfitDonut" class="cost-profit-donut">
+                        <div class="donut-center">
+                            <strong id="donutTotal">₹0</strong>
+                            <small>Revenue</small>
+                        </div>
+                    </div>
+
+                    <div id="donutLegend" class="donut-legend"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="report-panel report-note">
+            <h3>Report Information</h3>
+            <p>
+                These figures are calculated from the sales, expenses and
+                inventory records currently saved in SareeDesk.
+                Estimated net profit is not a substitute for audited accounts.
+            </p>
+            <small id="reportGeneratedAt"></small>
+        </div>
+
+    </div>
+
+    <p id="reportsMessage" class="report-status error"></p>
+
+</div>

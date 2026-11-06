@@ -1,0 +1,88 @@
+
+/* =====================================
+   SAREEDESK - DASHBOARD PAGE
+===================================== */
+
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 20px;
+}
+
+.dashboard-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    padding: 19px;
+    text-align: left;
+    cursor: pointer;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px #23394b12;
+}
+
+.dashboard-card b {
+    display: block;
+    font: 700 15px Manrope;
+    margin-top: 12px;
+    color: var(--ink);
+}
+
+.dashboard-card small {
+    display: block;
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+@media (max-width: 850px) {
+    .dashboard-stats,
+    .dashboard-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .dashboard-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .dashboard-card {
+        padding: 14px;
+    }
+
+    .dashboard-card b {
+        font-size: 13px;
+    }
+
+    .dashboard-card small {
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 380px) {
+    .dashboard-grid {
+        gap: 8px;
+    }
+
+    .dashboard-card {
+        padding: 11px;
+    }
+}

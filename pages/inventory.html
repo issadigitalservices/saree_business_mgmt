@@ -1,0 +1,83 @@
+<div class="inventory-page">
+
+    <div class="intro">
+        <h3>Inventory Management</h3>
+        <p>View, search and manage your saree stock.</p>
+    </div>
+
+    <div class="inventory-toolbar">
+
+        <div class="inventory-search">
+            <input
+                type="search"
+                id="inventorySearch"
+                placeholder="Search product name or code..."
+                autocomplete="off"
+            >
+        </div>
+
+        <button type="button" class="primary" id="refreshInventory">
+            ↻ Refresh
+        </button>
+
+    </div>
+
+    <div class="inventory-summary" id="inventorySummary">
+
+        <div class="stat">
+            <small>Total Products</small>
+            <strong id="totalProducts">0</strong>
+        </div>
+
+        <div class="stat">
+            <small>Total Available Units</small>
+            <strong id="totalUnits">0</strong>
+        </div>
+
+        <div class="stat">
+            <small>Inventory Cost Value</small>
+            <strong id="inventoryValue">₹0</strong>
+        </div>
+
+    </div>
+
+    <div class="table-card">
+
+        <div class="table-heading">
+            <h3>Product List</h3>
+            <span id="inventoryCount">0 products</span>
+        </div>
+
+        <div class="table-wrap">
+
+            <table class="data-table">
+
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Product</th>
+                        <th>Unit Cost</th>
+                        <th>Selling</th>
+                        <th>Profit / Unit</th>
+                        <th>Stock</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+
+                <tbody id="inventoryTableBody">
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            Loading inventory...
+                        </td>
+                    </tr>
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    <p id="inventoryMessage" class="inventory-message"></p>
+
+</div>

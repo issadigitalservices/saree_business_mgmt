@@ -1,0 +1,173 @@
+/* =====================================
+   SAREEDESK - SALES PAGE
+===================================== */
+
+.sales-page {
+    width: 100%;
+}
+
+.sales-page .form-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px;
+    margin-top: 18px;
+}
+
+.sales-page .form-section {
+    padding-bottom: 22px;
+    margin-bottom: 22px;
+    border-bottom: 1px solid var(--line);
+}
+
+.sales-page .form-section h3 {
+    font: 700 16px Manrope, sans-serif;
+    color: var(--ink);
+    margin: 0 0 17px;
+}
+
+.sales-page .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.sales-page .form-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.sales-page .form-grid input,
+.sales-page .form-grid select {
+    width: 100%;
+    min-width: 0;
+    padding: 11px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+    font-size: 14px;
+    outline: none;
+}
+
+.sales-page .form-grid input:focus,
+.sales-page .form-grid select:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px #0d948810;
+}
+
+.sales-page .form-grid .full {
+    grid-column: 1 / -1;
+}
+
+.sale-product-info {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 13px;
+    background: #f3f8f8;
+    border-radius: 9px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.sale-product-info b {
+    color: var(--ink);
+}
+
+.sale-calculation {
+    display: grid;
+    gap: 13px;
+    padding: 18px;
+    margin: 5px 0 22px;
+    background: #f7fafb;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+}
+
+.sale-calculation > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    font-size: 13px;
+}
+
+.sale-calculation span {
+    color: var(--muted);
+}
+
+.sale-calculation strong {
+    color: var(--ink);
+    font-weight: 700;
+}
+
+.sale-calculation .due-row {
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+}
+
+.sale-calculation .due-row strong {
+    color: #dc2626;
+    font-size: 17px;
+}
+
+.sales-page .form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.sales-page .form-actions button {
+    min-width: 135px;
+}
+
+.sales-page .hidden {
+    display: none !important;
+}
+
+.sales-page .form-message {
+    margin-top: 13px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.sales-page .form-message.error {
+    color: #dc2626;
+}
+
+.sales-page .form-message.success {
+    color: #15803d;
+}
+
+@media (max-width: 600px) {
+    .sales-page .form-card {
+        padding: 15px;
+    }
+
+    .sales-page .form-grid {
+        grid-template-columns: 1fr;
+        gap: 13px;
+    }
+
+    .sales-page .form-grid .full {
+        grid-column: auto;
+    }
+
+    .sales-page .form-actions {
+        flex-direction: column;
+    }
+
+    .sales-page .form-actions button {
+        width: 100%;
+    }
+
+    .sale-product-info {
+        flex-direction: column;
+    }
+}
