@@ -520,11 +520,22 @@ export async function initSales({ db, user, go }) {
 
             const productRef = doc(db, 'products', selectedProduct.id);
 
-            const invoice = `SD-${Date.now()}`;
+            const counterRef = doc(db, 'counters', 'receiptNumber');
+
+let invoice = '';
 
             await runTransaction(db, async (transaction) => {
 
-                const productSnap = await transaction.get(productRef);
+                const counterSnap = await transaction.get(counterRef);
+const productSnap = await transaction.get(productRef);
+
+const lastNumber = counterSnap.exists()
+    ? Number(counterSnap.data().lastNumber) || 0
+    : 0;
+
+const nextNumber = lastNumber + 1;
+
+invoice = `Rpt-${String(nextNumber).padStart(6, '0')}`;
 
                 if (!productSnap.exists()) {
                     throw new Error('Selected product no longer exists.');
@@ -541,6 +552,11 @@ export async function initSales({ db, user, go }) {
                 }
 
                 const saleRef = doc(collection(db, 'sales'));
+transaction.set(counterRef, {
+    lastNumber: nextNumber,
+    updatedAt: serverTimestamp(),
+    updatedBy: user.uid
+}, { merge: true });
 
                 transaction.update(productRef, {
                     stock: availableStock - data.qty,

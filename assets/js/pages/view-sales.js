@@ -204,7 +204,7 @@ function printInvoice(sale) {
         <!DOCTYPE html>
         <html>
         <head>
-            <title>${escapeHTML(sale.invoice || 'Sales Invoice')}</title>
+            <title>${escapeHTML(sale.invoice || 'Receipt')}</title>
             <style>
                 body {
                     font-family: Arial, sans-serif;
@@ -355,13 +355,13 @@ function printInvoice(sale) {
         const filteredSales = getFilteredSales();
 
         $('salesCount').textContent =
-            `${filteredSales.length} invoice${filteredSales.length === 1 ? '' : 's'}`;
+    `${filteredSales.length} receipt${filteredSales.length === 1 ? '' : 's'}`;
 
         if (!filteredSales.length) {
             tableBody.innerHTML = `
                 <tr>
                     <td colspan="11" class="empty-state">
-                        No invoices found.
+                        No receipts found.
                     </td>
                 </tr>
             `;
