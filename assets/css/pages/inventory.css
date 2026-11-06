@@ -237,3 +237,100 @@
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+/* Inventory filters */
+
+.inventory-filters {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 18px 0;
+}
+
+.inventory-filter,
+.export-button {
+    border: 1px solid var(--border, #e5eaf0);
+    background: #fff;
+    color: var(--text, #334155);
+    padding: 11px 16px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.inventory-filter span {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    background: #eef2f6;
+    font-size: 12px;
+}
+
+.inventory-filter:hover {
+    border-color: #147f78;
+    color: #147f78;
+}
+
+.inventory-filter.active {
+    background: #147f78;
+    color: #fff;
+    border-color: #147f78;
+}
+
+.inventory-filter.active span {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.export-button {
+    margin-left: auto;
+    background: #e8f5f1;
+    color: #147f78;
+    border-color: #c8e7df;
+}
+
+.export-button:hover {
+    background: #147f78;
+    color: #fff;
+}
+
+.inventory-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.delete-product-btn {
+    background: #fee2e2;
+    color: #dc2626;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.delete-product-btn:hover {
+    background: #fecaca;
+}
+
+.delete-product-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+    .inventory-filters {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .inventory-filter,
+    .export-button {
+        width: 100%;
+        margin-left: 0;
+    }
+}

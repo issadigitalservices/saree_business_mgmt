@@ -1,7 +1,6 @@
-
 /* =====================================
-   SAREEDESK - INVENTORY
-   Edit and Delete Products
+   SAREEDESK - INVENTORY MANAGEMENT
+   Search, Filters, Export, Edit, Delete
 ===================================== */
 
 import {
@@ -11,12 +10,12 @@ import {
     deleteDoc
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
-const $ = (id) => document.getElementById(id);
+const $ = id => document.getElementById(id);
 
 const IMAGE_API =
     'https://dawn-sun-197asareedesk-image-api.issakuttyalam.workers.dev';
 
-const money = (value) => {
+const money = value => {
     return new Intl.NumberFormat('en-IN', {
         style: 'currency',
         currency: 'INR',
@@ -24,7 +23,7 @@ const money = (value) => {
     }).format(Number(value) || 0);
 };
 
-const escapeHTML = (value) => {
+const escapeHTML = value => {
     return String(value ?? '').replace(/[&<>"']/g, character => ({
         '&': '&amp;',
         '<': '&lt;',
@@ -50,41 +49,77 @@ export async function initInventory({
 
     const searchInput = $('inventorySearch');
     const refreshButton = $('refreshInventory');
+    const exportButton = $('exportInventory');
+
+    const filterButtons = document.querySelectorAll(
+        '[data-filter]'
+    );
 
     const isAdmin = profile?.role === 'admin';
 
-    /* ---------------------------------
-       UPDATE SUMMARY
-    --------------------------------- */
+    let activeFilter = 'all';
 
-    function updateSummary(products) {
+    /* =====================================
+       SUMMARY COUNTS
+    ===================================== */
 
-        $('totalProducts').textContent = products.length;
+    function updateSummary() {
 
-        const totalUnits = products.reduce(
-            (sum, product) => sum + (Number(product.stock) || 0),
-            0
-        );
+    const totalProducts = inventoryProducts.length;
 
-        const inventoryValue = products.reduce(
-            (sum, product) =>
-                sum +
-                ((Number(product.unitCost) || 0) *
-                (Number(product.stock) || 0)),
-            0
-        );
+    const inStockProducts = inventoryProducts.filter(
+        product => Number(product.stock) > 0
+    ).length;
 
-        $('totalUnits').textContent = totalUnits;
-        $('inventoryValue').textContent = money(inventoryValue);
+    const soldOutProducts = inventoryProducts.filter(
+        product => Number(product.stock) <= 0
+    ).length;
+
+    // Update only the three filter counts.
+    $('filterTotalCount').textContent = totalProducts;
+    $('filterStockCount').textContent = inStockProducts;
+    $('filterSoldCount').textContent = soldOutProducts;
+}
+
+    /* =====================================
+       GET FILTERED PRODUCTS
+    ===================================== */
+
+    function getFilteredProducts() {
+
+        const searchTerm = searchInput.value
+            .trim()
+            .toLowerCase();
+
+        return inventoryProducts.filter(product => {
+
+            const name = String(product.name || '').toLowerCase();
+            const code = String(product.code || '').toLowerCase();
+            const stock = Number(product.stock) || 0;
+
+            const matchesSearch =
+                name.includes(searchTerm) ||
+                code.includes(searchTerm);
+
+            let matchesFilter = true;
+
+            if (activeFilter === 'stock') {
+                matchesFilter = stock > 0;
+            }
+
+            if (activeFilter === 'sold') {
+                matchesFilter = stock <= 0;
+            }
+
+            return matchesSearch && matchesFilter;
+        });
     }
 
-    /* ---------------------------------
+    /* =====================================
        RENDER INVENTORY TABLE
-    --------------------------------- */
+    ===================================== */
 
     function renderInventory(products) {
-
-        updateSummary(products);
 
         $('inventoryCount').textContent =
             `${products.length} product${products.length === 1 ? '' : 's'}`;
@@ -167,33 +202,120 @@ export async function initInventory({
         }).join('');
     }
 
-    /* ---------------------------------
-       SEARCH PRODUCTS
-    --------------------------------- */
+    /* =====================================
+       APPLY SEARCH AND FILTER
+    ===================================== */
 
-    function searchInventory() {
+    function applyFilters() {
 
-        const searchTerm = searchInput.value
-            .trim()
-            .toLowerCase();
-
-        const filteredProducts = inventoryProducts.filter(product => {
-
-            const name = String(product.name || '').toLowerCase();
-            const code = String(product.code || '').toLowerCase();
-
-            return name.includes(searchTerm) ||
-                code.includes(searchTerm);
-        });
+        const filteredProducts = getFilteredProducts();
 
         renderInventory(filteredProducts);
     }
 
-    searchInput.addEventListener('input', searchInventory);
+    /* =====================================
+       FILTER BUTTON EVENTS
+    ===================================== */
 
-    /* ---------------------------------
+    filterButtons.forEach(button => {
+
+        button.addEventListener('click', () => {
+
+            activeFilter = button.dataset.filter;
+
+            filterButtons.forEach(item => {
+                item.classList.toggle(
+                    'active',
+                    item.dataset.filter === activeFilter
+                );
+            });
+
+            applyFilters();
+        });
+    });
+
+    /* =====================================
+       SEARCH EVENT
+    ===================================== */
+
+    searchInput.addEventListener('input', applyFilters);
+
+    /* =====================================
+       EXPORT CSV
+    ===================================== */
+
+    function exportInventory() {
+
+        const products = getFilteredProducts();
+
+        if (!products.length) {
+            alert('No products available to export.');
+            return;
+        }
+
+        const headers = [
+            'Product Code',
+            'Product Name',
+            'Unit Cost',
+            'Selling Price',
+            'Profit Per Unit',
+            'Stock Quantity',
+            'Stock Status'
+        ];
+
+        const rows = products.map(product => {
+
+            const stock = Number(product.stock) || 0;
+            const unitCost = Number(product.unitCost) || 0;
+            const sellingPrice = Number(product.price) || 0;
+
+            return [
+                product.code || '',
+                product.name || '',
+                unitCost.toFixed(2),
+                sellingPrice.toFixed(2),
+                (sellingPrice - unitCost).toFixed(2),
+                stock,
+                stock > 0 ? 'In Stock' : 'Sold Out'
+            ];
+        });
+
+        const csvContent = [
+            headers,
+            ...rows
+        ].map(row =>
+            row.map(value =>
+                `"${String(value).replace(/"/g, '""')}"`
+            ).join(',')
+        ).join('\r\n');
+
+        // UTF-8 BOM helps Excel display text correctly.
+        const blob = new Blob(
+            ['\uFEFF' + csvContent],
+            { type: 'text/csv;charset=utf-8;' }
+        );
+
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+
+        link.href = url;
+
+        const date = new Date().toISOString().slice(0, 10);
+
+        link.download = `SareeDesk_Inventory_${date}.csv`;
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        URL.revokeObjectURL(url);
+    }
+
+    exportButton.addEventListener('click', exportInventory);
+
+    /* =====================================
        LOAD PRODUCTS FROM FIRESTORE
-    --------------------------------- */
+    ===================================== */
 
     async function loadInventory() {
 
@@ -226,7 +348,8 @@ export async function initInventory({
                 String(b.code || '').localeCompare(String(a.code || ''))
             );
 
-            searchInventory();
+            updateSummary();
+            applyFilters();
 
         } catch (error) {
 
@@ -252,11 +375,13 @@ export async function initInventory({
         }
     }
 
-    /* ---------------------------------
-       EDIT AND DELETE BUTTONS
-    --------------------------------- */
+    refreshButton.addEventListener('click', loadInventory);
 
-    tableBody.addEventListener('click', async (event) => {
+    /* =====================================
+       EDIT AND DELETE EVENTS
+    ===================================== */
+
+    tableBody.addEventListener('click', async event => {
 
         const editButton = event.target.closest('[data-edit-id]');
         const deleteButton = event.target.closest('[data-delete-id]');
@@ -309,24 +434,24 @@ export async function initInventory({
 
             try {
 
-                // Delete product document from Firestore.
                 await deleteDoc(
                     doc(db, 'products', productId)
                 );
 
-                // Remove it from the displayed list.
                 inventoryProducts = inventoryProducts.filter(
                     item => item.id !== productId
                 );
 
-                searchInventory();
+                updateSummary();
+                applyFilters();
 
                 $('inventoryMessage').textContent =
                     'Product deleted successfully.';
 
-                $('inventoryMessage').classList.add('success');
+                $('inventoryMessage').className =
+                    'inventory-message success';
 
-                // Attempt to remove the associated image from R2.
+                // Remove the associated image from Cloudflare R2.
                 if (product.imageKey && user) {
 
                     try {
@@ -351,7 +476,7 @@ export async function initInventory({
 
                         if (!response.ok || !result.success) {
                             console.warn(
-                                'Product was deleted, but R2 image cleanup failed:',
+                                'Product deleted, but image cleanup failed:',
                                 result.error
                             );
                         }
@@ -359,7 +484,7 @@ export async function initInventory({
                     } catch (imageError) {
 
                         console.warn(
-                            'Product was deleted, but image cleanup failed:',
+                            'Product deleted, but image cleanup failed:',
                             imageError
                         );
                     }
@@ -372,22 +497,17 @@ export async function initInventory({
                 $('inventoryMessage').textContent =
                     error.message || 'Unable to delete product.';
 
-                $('inventoryMessage').classList.add('error');
+                $('inventoryMessage').className =
+                    'inventory-message error';
 
                 await loadInventory();
             }
         }
     });
 
-    /* ---------------------------------
-       REFRESH BUTTON
-    --------------------------------- */
-
-    refreshButton.addEventListener('click', loadInventory);
-
-    /* ---------------------------------
+    /* =====================================
        INITIAL LOAD
-    --------------------------------- */
+    ===================================== */
 
     await loadInventory();
 }
