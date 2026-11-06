@@ -462,85 +462,96 @@ $('logout').addEventListener('click', logout);
    AUTH STATE LISTENER
 ===================================== */
 
-onAuthStateChanged(auth, async user => {
-
-    if (!user) {
-
-        currentUser = null;
-        currentProfile = null;
-        currentPage = null;
-        editingProductId = null;
-
-        $('login').classList.remove('hidden');
-        $('app').classList.add('hidden');
-
-        $('loginMsg').textContent = '';
-
-        return;
-    }
-
-    console.log('AUTHENTICATED UID:', user.uid);
-    console.log('AUTHENTICATED EMAIL:', user.email);
-    console.log('FIREBASE PROJECT:', db.app.options.projectId);
-
+async function initializeAuthentication() {
     try {
+        // Set permanent browser persistence before checking auth state.
+        await setPersistence(auth, browserLocalPersistence);
 
-        currentUser = user;
+        console.log('LOCAL AUTH PERSISTENCE ENABLED');
 
-        const userRef = doc(db, 'users', user.uid);
+        onAuthStateChanged(auth, async user => {
 
-        console.log('READING USER DOCUMENT:', user.uid);
+            if (!user) {
+                currentUser = null;
+                currentProfile = null;
+                currentPage = null;
+                editingProductId = null;
 
-        const snapshot = await getDoc(userRef);
+                $('login').classList.remove('hidden');
+                $('app').classList.add('hidden');
 
-        console.log('PROFILE EXISTS:', snapshot.exists());
+                $('loginMsg').textContent = '';
 
-        if (!snapshot.exists()) {
-            throw new Error('Admin profile document not found.');
-        }
+                console.log('NO AUTHENTICATED USER');
 
-        const data = snapshot.data();
+                return;
+            }
 
-        console.log('PROFILE DATA:', data);
+            console.log('AUTHENTICATED UID:', user.uid);
+            console.log('AUTHENTICATED EMAIL:', user.email);
+            console.log('FIREBASE PROJECT:', db.app.options.projectId);
 
-        if (data.active !== true) {
-            throw new Error('Your account is inactive.');
-        }
+            try {
+                currentUser = user;
 
-        if (!['admin', 'staff'].includes(data.role)) {
-            throw new Error('Invalid account role.');
-        }
+                const userRef = doc(db, 'users', user.uid);
+                const snapshot = await getDoc(userRef);
 
-        currentProfile = data;
+                if (!snapshot.exists()) {
+                    throw new Error('Admin profile document not found.');
+                }
 
-        $('login').classList.add('hidden');
-        $('app').classList.remove('hidden');
+                const data = snapshot.data();
 
-        $('userEmail').textContent =
-            data.email || user.email || '';
+                if (data.active !== true) {
+                    throw new Error('Your account is inactive.');
+                }
 
-        $('role').textContent =
-            data.role.toUpperCase();
+                if (!['admin', 'staff'].includes(data.role)) {
+                    throw new Error('Invalid account role.');
+                }
 
-        updateNavigationPermissions();
+                currentProfile = data;
 
-        await go('home');
+                $('login').classList.add('hidden');
+                $('app').classList.remove('hidden');
+
+                $('userEmail').textContent =
+                    data.email || user.email || '';
+
+                $('role').textContent =
+                    data.role.toUpperCase();
+
+                updateNavigationPermissions();
+
+                await go('home');
+
+            } catch (error) {
+                console.error('ACCOUNT PROFILE ERROR:', error);
+
+                // Do not sign out the authenticated Firebase user.
+                $('login').classList.add('hidden');
+                $('app').classList.remove('hidden');
+
+                $('screen').innerHTML = `
+                    <div class="intro">
+                        <h3>Account verification failed</h3>
+                        <p>${error.message}</p>
+                        <p>Your login session is still active. Please refresh or check your connection.</p>
+                    </div>
+                `;
+            }
+        });
 
     } catch (error) {
-
-        console.error('ACCOUNT PROFILE ERROR:', error);
+        console.error('AUTH INITIALIZATION ERROR:', error);
 
         $('login').classList.remove('hidden');
         $('app').classList.add('hidden');
 
         $('loginMsg').textContent =
-            error.code === 'permission-denied'
-                ? 'Firestore permission denied. Check published Firestore rules.'
-                : error.message;
-
-        // Keep the authenticated session temporarily for diagnosis.
-        // Do not automatically sign out on a profile-read error.
-
+            'Unable to initialize your login session. Please refresh and try again.';
     }
+}
 
-});
+initializeAuthentication();
