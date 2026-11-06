@@ -5,7 +5,9 @@
 import {
     onAuthStateChanged,
     signInWithEmailAndPassword,
-    signOut
+    signOut,
+    setPersistence,
+    browserLocalPersistence
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 
 import {
@@ -151,6 +153,10 @@ async function login(event) {
 
     try {
 
+        // Keep the login session in the browser.
+        await setPersistence(auth, browserLocalPersistence);
+
+        // Sign in.
         await signInWithEmailAndPassword(
             auth,
             email,
@@ -165,9 +171,7 @@ async function login(event) {
             'Invalid email or password. Please try again.';
 
     }
-
 }
-
 
 async function logout() {
 
