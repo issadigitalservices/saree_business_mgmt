@@ -467,18 +467,21 @@ async function initializeAuthentication() {
         await setPersistence(auth, browserLocalPersistence);
         console.log('LOCAL AUTH PERSISTENCE ENABLED');
 
-        // Check if there is already a cached session right this second
-        if (auth.currentUser) {
-            $('login').classList.add('hidden');
-            $('app').classList.remove('hidden');
-        }
+        // Prevent the login screen from flashing on hard refresh 
+        // by checking if Firebase has a cached session waiting in storage
+        let authResolved = false;
+
+        setTimeout(() => {
+            if (!authResolved && !auth.currentUser) {
+                $('login').classList.remove('hidden');
+                $('app').classList.add('hidden');
+            }
+        }, 800);
 
         onAuthStateChanged(auth, async user => {
+            authResolved = true;
 
             if (!user) {
-                // Only drop to login if there is truly no user and no cached session
-                if (auth.currentUser) return;
-
                 currentUser = null;
                 currentProfile = null;
                 currentPage = null;
@@ -514,7 +517,7 @@ async function initializeAuthentication() {
 
                 currentProfile = data;
 
-                // Ensure app is visible and login is hidden instantly
+                // Instantly hide login and show app smoothly
                 $('login').classList.add('hidden');
                 $('app').classList.remove('hidden');
 
