@@ -1,4 +1,3 @@
-
 import {
     collection,
     addDoc,
@@ -38,7 +37,7 @@ const escapeHTML = value =>
         '<': '&lt;',
         '>': '&gt;',
         '"': '&quot;',
-        "'": '&#39;'
+        "'": '&#039;'
     })[char]);
 
 function todayLocal() {
@@ -82,6 +81,11 @@ export async function initOpex({ db, user, profile }) {
             </div>
 
             <div class="stat">
+                <small>Total Salary</small>
+                <strong id="totalSalaryAmount">₹0.00</strong>
+            </div>
+
+            <div class="stat">
                 <small>Expense Records</small>
                 <strong id="expenseCount">0</strong>
             </div>
@@ -106,15 +110,15 @@ export async function initOpex({ db, user, profile }) {
                 </div>
 
                 <div class="field hidden" id="salaryStaffField">
-    <label for="salaryStaff">Staff Name</label>
+                    <label for="salaryStaff">Staff Name</label>
 
-    <select id="salaryStaff">
-        <option value="">Select Staff</option>
-        ${SALARY_STAFF.map(name => `
-            <option value="${name}">${name}</option>
-        `).join('')}
-    </select>
-</div>
+                    <select id="salaryStaff">
+                        <option value="">Select Staff</option>
+                        ${SALARY_STAFF.map(name => `
+                            <option value="${name}">${name}</option>
+                        `).join('')}
+                    </select>
+                </div>
 
                 <div class="field">
                     <label for="expenseAmount">Amount (₹)</label>
@@ -220,46 +224,50 @@ export async function initOpex({ db, user, profile }) {
     const message = $('expenseMessage');
     const tableBody = $('expenseTableBody');
 
-    // SHOW STAFF DROPDOWN ONLY FOR SALARY
-function updateSalaryFields() {
-    const isSalary = $('expenseCategory').value === 'Salary';
+    // SHOW STAFF DROPDOWN ONLY FOR SALARY & RESET DESCRIPTION IF NOT SALARY
+    function updateSalaryFields() {
+        const isSalary = $('expenseCategory').value === 'Salary';
 
-    $('salaryStaffField').classList.toggle('hidden', !isSalary);
+        $('salaryStaffField').classList.toggle('hidden', !isSalary);
+        $('salaryStaff').required = isSalary;
 
-    $('salaryStaff').required = isSalary;
-
-    if (isSalary) {
-        updateSalaryDescription();
-    } else {
-        $('expenseDescription').readOnly = false;
-        $('expenseDescription').placeholder = 'Enter expense details';
+        if (isSalary) {
+            updateSalaryDescription();
+        } else {
+            $('salaryStaff').value = '';
+            // Clear out auto-generated salary text if switching categories
+            if ($('expenseDescription').value.startsWith('Salary of ')) {
+                $('expenseDescription').value = '';
+            }
+            $('expenseDescription').readOnly = false;
+            $('expenseDescription').placeholder = 'Enter expense details';
+        }
     }
-}
 
-// AUTOMATIC SALARY DESCRIPTION
-function updateSalaryDescription() {
-    const staff = $('salaryStaff').value;
+    // AUTOMATIC SALARY DESCRIPTION
+    function updateSalaryDescription() {
+        const staff = $('salaryStaff').value;
 
-    $('expenseDescription').value =
-        staff ? `Salary of ${staff}` : '';
+        $('expenseDescription').value =
+            staff ? `Salary of ${staff}` : '';
 
-    $('expenseDescription').readOnly = true;
-}
+        $('expenseDescription').readOnly = true;
+    }
 
-$('expenseCategory').addEventListener('change', () => {
-    updateSalaryFields();
-});
+    $('expenseCategory').addEventListener('change', () => {
+        updateSalaryFields();
+    });
 
-$('salaryStaff').addEventListener('change', () => {
-    updateSalaryDescription();
-});
+    $('salaryStaff').addEventListener('change', () => {
+        updateSalaryDescription();
+    });
 
     function showMessage(text, type = 'success') {
         message.textContent = text;
         message.className = `expense-message ${type}`;
     }
 
-    // UPDATE TOTAL EXPENSE SUMMARY
+    // UPDATE TOTAL EXPENSE & TOTAL SALARY SUMMARY
     function updateExpenseSummary() {
 
         const total = expenses.reduce(
@@ -267,7 +275,15 @@ $('salaryStaff').addEventListener('change', () => {
             0
         );
 
+        const totalSalary = expenses.reduce(
+            (sum, expense) => expense.category === 'Salary' ? sum + Number(expense.amount || 0) : sum,
+            0
+        );
+
         $('totalExpenseAmount').textContent = money(total);
+        if ($('totalSalaryAmount')) {
+            $('totalSalaryAmount').textContent = money(totalSalary);
+        }
 
         $('expenseCount').textContent = expenses.length;
 
@@ -283,6 +299,7 @@ $('salaryStaff').addEventListener('change', () => {
         form.reset();
 
         $('expenseDate').value = todayLocal();
+        updateSalaryFields();
 
         $('expenseFormTitle').textContent = 'Add Expense';
 
@@ -299,14 +316,13 @@ $('salaryStaff').addEventListener('change', () => {
         editingExpenseId = expense.id;
 
         $('expenseCategory').value = expense.category || 'Other';
+        updateSalaryFields();
 
-$('salaryStaff').value = expense.staffName || '';
-
-updateSalaryFields();
-
-if (expense.category === 'Salary') {
-    updateSalaryDescription();
-}
+        if (expense.category === 'Salary' && expense.description) {
+            const staffName = expense.description.replace('Salary of ', '');
+            $('salaryStaff').value = staffName;
+            updateSalaryDescription();
+        }
 
         $('expenseAmount').value = Number(expense.amount || 0);
 
@@ -427,15 +443,15 @@ if (expense.category === 'Salary') {
 
         const data = new FormData(form);
 
-                const category = String(data.get('category') || '');
+        const category = String(data.get('category') || '');
 
-const staffName = category === 'Salary'
-    ? $('salaryStaff').value
-    : '';
+        const staffName = category === 'Salary'
+            ? $('salaryStaff').value
+            : '';
 
-const description = category === 'Salary'
-    ? (staffName ? `Salary of ${staffName}` : '')
-    : String(data.get('description') || '').trim();
+        const description = category === 'Salary'
+            ? (staffName ? `Salary of ${staffName}` : '')
+            : String(data.get('description') || '').trim();
 
         const amount = Number(data.get('amount'));
 
@@ -452,14 +468,14 @@ const description = category === 'Salary'
         }
 
         const expenseData = {
-    category,
-    staffName,
-    description,
-    amount,
-    date,
-    updatedAt: serverTimestamp(),
-    updatedBy: user.uid
-};
+            category,
+            staffName,
+            description,
+            amount,
+            date,
+            updatedAt: serverTimestamp(),
+            updatedBy: user.uid
+        };
 
         saveButton.disabled = true;
 

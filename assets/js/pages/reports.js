@@ -71,10 +71,15 @@ export async function initReports({ db, profile }) {
            CALCULATE SALES METRICS
         --------------------------------- */
 
-        const productsSold = sales.reduce(
-            (sum, sale) => sum + safeNumber(sale.qty),
-            0
-        );
+        const productsSold = sales.reduce((sum, sale) => {
+            // Check if sale has an items array (multi-product receipt)
+            if (Array.isArray(sale.items) && sale.items.length > 0) {
+                const itemsSum = sale.items.reduce((itemSub, item) => itemSub + safeNumber(item.qty), 0);
+                return sum + itemsSum;
+            }
+            // Fallback to legacy single-item sale structure if qty exists at root
+            return sum + safeNumber(sale.qty);
+        }, 0);
 
         const revenue = sales.reduce(
             (sum, sale) => sum + safeNumber(sale.total),
@@ -91,17 +96,13 @@ export async function initReports({ db, profile }) {
             0
         );
 
-        const outstanding = sales.reduce(
-            (sum, sale) => sum + Math.max(0, safeNumber(sale.paymentDue)),
+        const totalDiscount = sales.reduce(
+            (sum, sale) => sum + safeNumber(sale.discount),
             0
         );
 
-        /* ---------------------------------
-           OPERATING EXPENSES
-        --------------------------------- */
-
-        const operatingExpenses = expenses.reduce(
-            (sum, expense) => sum + safeNumber(expense.amount),
+        const outstanding = sales.reduce(
+            (sum, sale) => sum + Math.max(0, safeNumber(sale.paymentDue)),
             0
         );
 
@@ -110,10 +111,24 @@ export async function initReports({ db, profile }) {
         --------------------------------- */
 
         const availableUnits = products.reduce(
-            (sum, product) => sum + safeNumber(product.stock),
+            (sum, product) => sum + safeNumber(product.stock ?? product.quantity),
             0
         );
+        /* ---------------------------------
+           OPERATING EXPENSES & SALARIES
+        --------------------------------- */
 
+        const totalSalary = expenses.reduce((sum, expense) => {
+            const isSalary = expense.category === 'Salary' || expense.staffId || (expense.title && expense.title.toLowerCase().includes('salary'));
+            return isSalary ? sum + safeNumber(expense.amount) : sum;
+        }, 0);
+
+        const operatingExpenses = expenses.reduce((sum, expense) => {
+            const isSalary = expense.category === 'Salary' || expense.staffId || (expense.title && expense.title.toLowerCase().includes('salary'));
+            return !isSalary ? sum + safeNumber(expense.amount) : sum;
+        }, 0);
+
+      
         /* ---------------------------------
            ESTIMATED NET PROFIT
         --------------------------------- */
@@ -122,6 +137,7 @@ export async function initReports({ db, profile }) {
             revenue -
             costOfGoodsSold -
             operatingExpenses -
+            totalSalary -
             courierCosts;
 
         /* ---------------------------------
@@ -134,7 +150,11 @@ export async function initReports({ db, profile }) {
 
         $('reportCOGS').textContent = money(costOfGoodsSold);
 
+        if ($('reportDiscount')) $('reportDiscount').textContent = money(totalDiscount);
+
         $('reportOPEX').textContent = money(operatingExpenses);
+
+        if ($('reportSalary')) $('reportSalary').textContent = money(totalSalary);
 
         $('reportCourier').textContent = money(courierCosts);
 
@@ -163,8 +183,18 @@ export async function initReports({ db, profile }) {
                 className: 'bar-cost'
             },
             {
+                label: 'Total Discount',
+                value: totalDiscount,
+                className: 'bar-cost'
+            },
+            {
                 label: 'Operating Expenses',
                 value: operatingExpenses,
+                className: 'bar-expenses'
+            },
+            {
+                label: 'Total Salary',
+                value: totalSalary,
                 className: 'bar-expenses'
             },
             {
@@ -227,6 +257,12 @@ export async function initReports({ db, profile }) {
                 value: Math.max(0, operatingExpenses),
                 className: 'legend-expenses',
                 color: '#e5a23b'
+            },
+            {
+                label: 'Salaries',
+                value: Math.max(0, totalSalary),
+                className: 'legend-expenses',
+                color: '#d97706'
             },
             {
                 label: 'Courier Costs',

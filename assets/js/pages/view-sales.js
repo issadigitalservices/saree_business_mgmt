@@ -157,7 +157,7 @@ export async function initViewSales({ db, user, profile }) {
 
         if (!records.length) {
             body.innerHTML = `
-                <tr><td colspan="12" class="empty-state">No receipts found.</td></tr>
+                <tr><td colspan="13" class="empty-state">No receipts found.</td></tr>
             `;
             return;
         }
@@ -167,6 +167,7 @@ export async function initViewSales({ db, user, profile }) {
             const items = getItems(sale);
             const names = items.map(item => item.name).filter(Boolean).join(', ');
             const qty = items.reduce((sum, item) => sum + number(item.qty), 0);
+            const discount = number(sale.discount);
             const due = number(sale.paymentDue);
 
             return `
@@ -176,6 +177,7 @@ export async function initViewSales({ db, user, profile }) {
                     <td>${esc(sale.customer || '-')}</td>
                     <td title="${esc(names)}">${esc(names || '-')}</td>
                     <td>${qty}</td>
+                    <td>${money(discount)}</td>
                     <td>${money(sale.total)}</td>
                     <td>${money(getProfit(sale))}</td>
                     <td>${money(sale.paid)}</td>
@@ -293,6 +295,7 @@ export async function initViewSales({ db, user, profile }) {
                     </table>
 
                     <div class="line"><span>Subtotal</span><b>${money(getSubtotal(sale))}</b></div>
+                    <div class="line"><span>Discount</span><b>${money(sale.discount)}</b></div>
                     <div class="line"><span>Courier</span><b>${money(sale.courier)}</b></div>
                     <div class="line total"><span>Grand Total</span><b>${money(sale.total)}</b></div>
                     <div class="line"><span>Received</span><b>${money(sale.paid)}</b></div>
@@ -346,7 +349,6 @@ export async function initViewSales({ db, user, profile }) {
                     doc(db, 'products', item.productId)
                 );
 
-                // Read all linked product documents before writing.
                 const snapshots = [];
                 for (const ref of refs) {
                     snapshots.push(await transaction.get(ref));
@@ -409,7 +411,10 @@ export async function initViewSales({ db, user, profile }) {
 
         if (!editingSale) return;
 
-        const total = getSubtotal(editingSale) + number($('editCourier').value);
+        const subtotal = getSubtotal(editingSale);
+        const discount = number(editingSale.discount);
+        const courier = number($('editCourier').value);
+        const total = subtotal - discount + courier;
         const paid = number($('editPaid').value);
         const due = Math.max(0, total - paid);
 
@@ -442,7 +447,8 @@ export async function initViewSales({ db, user, profile }) {
         const paid = number($('editPaid').value);
         const courier = number($('editCourier').value);
         const subtotal = getSubtotal(editingSale);
-        const total = subtotal + courier;
+        const discount = number(editingSale.discount);
+        const total = subtotal - discount + courier;
         const due = Math.max(0, total - paid);
 
         if (paid < 0 || courier < 0 || paid > total) {

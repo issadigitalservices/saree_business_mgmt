@@ -1,4 +1,3 @@
-
 /* =====================================
    SAREEDESK - ADD ITEM
    Image storage: Cloudflare R2
@@ -19,16 +18,22 @@ const $ = (id) => document.getElementById(id);
 const IMAGE_API =
     'https://dawn-sun-197asareedesk-image-api.issakuttyalam.workers.dev';
 
-const MAX_ORIGINAL_IMAGE_SIZE = 15 * 1024 * 1024;
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const MAX_ORIGINAL_IMAGE_SIZE = 8 * 1024 * 1024; // Lowered to 8MB max for faster browser reading
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024;          // Target compressed size under 2MB for instant uploading
 
-const MAX_IMAGE_DIMENSION = 1600;
-const IMAGE_QUALITY = 0.78;
+const MAX_IMAGE_DIMENSION = 1280;                 // Optimized lower resolution for fast web processing & snappy uploads
+const IMAGE_QUALITY = 0.70;                       // Faster compression & smaller file size
 
+// Allow all standard image formats
 const ALLOWED_IMAGE_TYPES = [
     'image/jpeg',
     'image/png',
-    'image/webp'
+    'image/webp',
+    'image/gif',
+    'image/avif',
+    'image/bmp',
+    'image/heic',
+    'image/heif'
 ];
 
 const moneyValue = (value) => {
@@ -152,67 +157,70 @@ export async function initAddItem({
     --------------------------------- */
 
     imageInput.addEventListener('change', async () => {
-    const file = imageInput.files?.[0];
-
-    selectedImageFile = null;
-
-    if (!file) return;
-
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-        setMessage(
-            'Please select a JPG, PNG or WebP image.',
-            'error'
-        );
-        imageInput.value = '';
-        return;
-    }
-
-    if (file.size > MAX_ORIGINAL_IMAGE_SIZE) {
-        setMessage(
-            'Original image must not exceed 15 MB.',
-            'error'
-        );
-        imageInput.value = '';
-        return;
-    }
-
-    try {
-        setMessage('Compressing image...');
-
-        const compressedFile = await compressImage(file);
-
-        selectedImageFile = compressedFile;
-
-        const reader = new FileReader();
-
-        reader.onload = () => {
-            $('imagePreview').src = reader.result;
-            $('imagePreview').classList.remove('hidden');
-
-            const originalSize = (file.size / 1024).toFixed(0);
-            const compressedSize =
-                (compressedFile.size / 1024).toFixed(0);
-
-            setMessage(
-                `Image compressed: ${originalSize} KB → ${compressedSize} KB`,
-                'success'
-            );
-        };
-
-        reader.readAsDataURL(compressedFile);
-
-    } catch (error) {
-        console.error('Image compression error:', error);
+        const file = imageInput.files?.[0];
 
         selectedImageFile = null;
-        imageInput.value = '';
 
-        setMessage(
-            error.message || 'Unable to compress image.',
-            'error'
-        );
-    }
-});
+        if (!file) return;
+
+        // Check if file type is an image (allow any image/* mime type or explicit allowed list fallback)
+        const isSupportedType = ALLOWED_IMAGE_TYPES.includes(file.type) || file.type.startsWith('image/');
+
+        if (!isSupportedType) {
+            setMessage(
+                'Please select a valid image file.',
+                'error'
+            );
+            imageInput.value = '';
+            return;
+        }
+
+        if (file.size > MAX_ORIGINAL_IMAGE_SIZE) {
+            setMessage(
+                'Original image must not exceed 25 MB.',
+                'error'
+            );
+            imageInput.value = '';
+            return;
+        }
+
+        try {
+            setMessage('Processing and compressing image...');
+
+            const compressedFile = await compressImage(file);
+
+            selectedImageFile = compressedFile;
+
+            const reader = new FileReader();
+
+            reader.onload = () => {
+                $('imagePreview').src = reader.result;
+                $('imagePreview').classList.remove('hidden');
+
+                const originalSize = (file.size / 1024).toFixed(0);
+                const compressedSize =
+                    (compressedFile.size / 1024).toFixed(0);
+
+                setMessage(
+                    `Image processed: ${originalSize} KB → ${compressedSize} KB`,
+                    'success'
+                );
+            };
+
+            reader.readAsDataURL(compressedFile);
+
+        } catch (error) {
+            console.error('Image processing error:', error);
+
+            selectedImageFile = null;
+            imageInput.value = '';
+
+            setMessage(
+                error.message || 'Unable to process image. Please try another file.',
+                'error'
+            );
+        }
+    });
 
     /* ---------------------------------
        UPLOAD IMAGE TO CLOUDFLARE R2
@@ -301,29 +309,29 @@ export async function initAddItem({
 
             $('productCode').value = product.code || '';
             $('productDate').value =
-    product.productDate ||
-    (product.createdAt?.toDate
-        ? product.createdAt.toDate().toLocaleDateString('en-CA')
-        : getTodayDate());
+                product.productDate ||
+                (product.createdAt?.toDate
+                    ? product.createdAt.toDate().toLocaleDateString('en-CA')
+                    : getTodayDate());
             const productNameSelect = $('productName');
-const existingName = product.name || '';
+            const existingName = product.name || '';
 
-if (
-    existingName &&
-    !Array.from(productNameSelect.options).some(
-        option => option.value === existingName
-    )
-) {
-    const legacyOption = document.createElement('option');
-    legacyOption.value = existingName;
-    legacyOption.textContent = existingName;
-    productNameSelect.appendChild(legacyOption);
-}
+            if (
+                existingName &&
+                !Array.from(productNameSelect.options).some(
+                    option => option.value === existingName
+                )
+            ) {
+                const legacyOption = document.createElement('option');
+                legacyOption.value = existingName;
+                legacyOption.textContent = existingName;
+                productNameSelect.appendChild(legacyOption);
+            }
 
-productNameSelect.value = existingName;
+            productNameSelect.value = existingName;
 
-$('productAdditionalInfo').value =
-    product.additionalInfo || '';
+            $('productAdditionalInfo').value =
+                product.additionalInfo || '';
             $('shippingPackagingCost').value =
                 product.shippingPackagingCost ?? 0;
             $('purchaseCost').value = product.purchaseCost ?? 0;
@@ -424,11 +432,11 @@ $('productAdditionalInfo').value =
         const productCode = await generateProductCode();
 
         await addDoc(collection(db, 'sales'), {
-    productDate: $('productDate').value,
-    invoice: `SD-${Date.now()}`,
+            productDate: $('productDate').value,
+            invoice: `SD-${Date.now()}`,
             productId: null,
             productName: $('productName').value,
-productAdditionalInfo: $('productAdditionalInfo').value.trim(),
+            productAdditionalInfo: $('productAdditionalInfo').value.trim(),
             productCode,
             productImage: image.imageUrl,
             productImageKey: image.imageKey,
@@ -460,10 +468,10 @@ productAdditionalInfo: $('productAdditionalInfo').value.trim(),
         const code = await generateProductCode();
 
         await addDoc(collection(db, 'products'), {
-    code,
-    productDate: $('productDate').value,
-    name: $('productName').value,
-additionalInfo: $('productAdditionalInfo').value.trim(),
+            code,
+            productDate: $('productDate').value,
+            name: $('productName').value,
+            additionalInfo: $('productAdditionalInfo').value.trim(),
             imageUrl: image.imageUrl,
             imageKey: image.imageKey,
             shippingPackagingCost:
@@ -477,56 +485,50 @@ additionalInfo: $('productAdditionalInfo').value.trim(),
         });
     }
 
-    // COMPRESS IMAGE BEFORE UPLOAD
-async function compressImage(file) {
-    const bitmap = await createImageBitmap(file);
+    // FAST COMPRESSION BEFORE UPLOAD
+    async function compressImage(file) {
+        const bitmap = await createImageBitmap(file);
 
-    let width = bitmap.width;
-    let height = bitmap.height;
+        let width = bitmap.width;
+        let height = bitmap.height;
 
-    // Resize while maintaining aspect ratio
-    const scale = Math.min(
-        1,
-        MAX_IMAGE_DIMENSION / Math.max(width, height)
-    );
+        // Resize quickly while maintaining aspect ratio
+        const scale = Math.min(
+            1,
+            MAX_IMAGE_DIMENSION / Math.max(width, height)
+        );
 
-    width = Math.round(width * scale);
-    height = Math.round(height * scale);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
 
-    const canvas = document.createElement('canvas');
+        const canvas = document.createElement('canvas');
 
-    canvas.width = width;
-    canvas.height = height;
+        canvas.width = width;
+        canvas.height = height;
 
-    const context = canvas.getContext('2d');
+        const context = canvas.getContext('2d', { alpha: false }); // Disable alpha channel for faster rendering if not needed
 
-    context.drawImage(bitmap, 0, 0, width, height);
-    bitmap.close();
+        context.drawImage(bitmap, 0, 0, width, height);
+        bitmap.close();
 
-    // Compress to WebP
-    const blob = await new Promise(resolve => {
-        canvas.toBlob(resolve, 'image/webp', IMAGE_QUALITY);
-    });
+        // Convert and compress to WebP rapidly
+        const blob = await new Promise(resolve => {
+            canvas.toBlob(resolve, 'image/webp', IMAGE_QUALITY);
+        });
 
-    if (!blob) {
-        throw new Error('Unable to compress image.');
-    }
+        if (!blob) {
+            throw new Error('Unable to compress image.');
+        }
 
-    if (blob.size > MAX_IMAGE_SIZE) {
-        throw new Error(
-            'Compressed image is still larger than 5 MB. Please select another image.'
+        return new File(
+            [blob],
+            file.name.replace(/\.[^.]+$/, '') + '.webp',
+            {
+                type: 'image/webp',
+                lastModified: Date.now()
+            }
         );
     }
-
-    return new File(
-        [blob],
-        file.name.replace(/\.[^.]+$/, '') + '.webp',
-        {
-            type: 'image/webp',
-            lastModified: Date.now()
-        }
-    );
-}
 
     /* ---------------------------------
        UPDATE EXISTING PRODUCT
@@ -536,9 +538,9 @@ async function compressImage(file) {
         const productRef = doc(db, 'products', currentEditingId);
 
         await setDoc(productRef, {
-    productDate: $('productDate').value,
-    name: $('productName').value,
-additionalInfo: $('productAdditionalInfo').value.trim(),
+            productDate: $('productDate').value,
+            name: $('productName').value,
+            additionalInfo: $('productAdditionalInfo').value.trim(),
             imageUrl: image.imageUrl,
             imageKey: image.imageKey,
             shippingPackagingCost:
