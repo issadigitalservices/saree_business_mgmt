@@ -464,14 +464,21 @@ $('logout').addEventListener('click', logout);
 
 async function initializeAuthentication() {
     try {
-        // Set permanent browser persistence and wait for it to take effect
         await setPersistence(auth, browserLocalPersistence);
         console.log('LOCAL AUTH PERSISTENCE ENABLED');
+
+        let isInitialCheck = true;
 
         onAuthStateChanged(auth, async user => {
 
             if (!user) {
-                // Only clear session if Firebase explicitly confirms no user is signed in
+                // If it's the very first load, don't instantly throw them to login 
+                // while Firebase is still fetching the auth token from storage!
+                if (isInitialCheck) {
+                    // Wait a brief moment on initial load to let Firebase hydrate
+                    return;
+                }
+
                 currentUser = null;
                 currentProfile = null;
                 currentPage = null;
@@ -479,13 +486,12 @@ async function initializeAuthentication() {
 
                 $('login').classList.remove('hidden');
                 $('app').classList.add('hidden');
-
                 $('loginMsg').textContent = '';
-
-                console.log('NO AUTHENTICATED USER');
                 return;
             }
 
+            // Once user is confirmed, mark initial check as done
+            isInitialCheck = false;
             console.log('AUTHENTICATED UID:', user.uid);
 
             try {
@@ -521,7 +527,6 @@ async function initializeAuthentication() {
 
                 updateNavigationPermissions();
 
-                // Only load home on initial login/load if not already on a page
                 if (!currentPage) {
                     await go('home');
                 }
@@ -536,20 +541,25 @@ async function initializeAuthentication() {
                     <div class="intro">
                         <h3>Account verification failed</h3>
                         <p>${error.message}</p>
-                        <p>Your login session is still active. Please refresh or check your connection.</p>
                     </div>
                 `;
             }
         });
 
+        // Fallback safety net: If Firebase takes longer than 1.5 seconds 
+        // to respond on initial load, show login screen if no user exists.
+        setTimeout(() => {
+            if (isInitialCheck && !auth.currentUser) {
+                isInitialCheck = false;
+                $('login').classList.remove('hidden');
+                $('app').classList.add('hidden');
+            }
+        }, 1500);
+
     } catch (error) {
         console.error('AUTH INITIALIZATION ERROR:', error);
-
         $('login').classList.remove('hidden');
         $('app').classList.add('hidden');
-
-        $('loginMsg').textContent =
-            'Unable to initialize your login session. Please refresh and try again.';
     }
 }
 
