@@ -464,14 +464,14 @@ $('logout').addEventListener('click', logout);
 
 async function initializeAuthentication() {
     try {
-        // Set permanent browser persistence before checking auth state.
+        // Set permanent browser persistence and wait for it to take effect
         await setPersistence(auth, browserLocalPersistence);
-
         console.log('LOCAL AUTH PERSISTENCE ENABLED');
 
         onAuthStateChanged(auth, async user => {
 
             if (!user) {
+                // Only clear session if Firebase explicitly confirms no user is signed in
                 currentUser = null;
                 currentProfile = null;
                 currentPage = null;
@@ -483,13 +483,10 @@ async function initializeAuthentication() {
                 $('loginMsg').textContent = '';
 
                 console.log('NO AUTHENTICATED USER');
-
                 return;
             }
 
             console.log('AUTHENTICATED UID:', user.uid);
-            console.log('AUTHENTICATED EMAIL:', user.email);
-            console.log('FIREBASE PROJECT:', db.app.options.projectId);
 
             try {
                 currentUser = user;
@@ -524,14 +521,16 @@ async function initializeAuthentication() {
 
                 updateNavigationPermissions();
 
-                await go('home');
+                // Only load home on initial login/load if not already on a page
+                if (!currentPage) {
+                    await go('home');
+                }
 
             } catch (error) {
                 console.error('ACCOUNT PROFILE ERROR:', error);
 
-                // Do not sign out the authenticated Firebase user.
                 $('login').classList.add('hidden');
-                $('app').classList.remove('hidden');
+                $('app').classList.add('hidden');
 
                 $('screen').innerHTML = `
                     <div class="intro">
@@ -554,4 +553,5 @@ async function initializeAuthentication() {
     }
 }
 
+// Initialize authentication on load
 initializeAuthentication();
