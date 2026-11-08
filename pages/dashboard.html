@@ -1,48 +1,70 @@
-
 <div class="dashboard-page">
 
-    <div class="intro">
-        <h3>Welcome to Aarabhi Online Threads</h3>
-        <p>Manage your saree business, inventory and sales from one place</p>
+    <div class="dashboard-hero">
+        <div class="hero-text">
+            <h3>Welcome back, Admin!</h3>
+            <p>Manage your saree business, inventory, and sales effortlessly from one place.</p>
+        </div>
+        <div class="hero-badge">
+            <span>⚡ Live Operations</span>
+        </div>
     </div>
 
     <div class="dashboard-grid">
 
-        <button class="dashboard-card" type="button" data-page="add">
-            <span class="icon">＋</span>
-            <b>Add Item</b>
-            <small>Add new saree products to your business</small>
-        </button>
+        <div class="dash-card" data-page="add">
+            <div class="dash-icon add-icon">＋</div>
+            <div class="dash-info">
+                <h4>Add Item</h4>
+                <p>Add new saree products or direct sales to your business</p>
+            </div>
+            <span class="dash-arrow">→</span>
+        </div>
 
-        <button class="dashboard-card" type="button" data-page="inventory">
-            <span class="icon">▦</span>
-            <b>Inventory</b>
-            <small>View and manage available stock</small>
-        </button>
+        <div class="dash-card" data-page="inventory">
+            <div class="dash-icon inventory-icon">▦</div>
+            <div class="dash-info">
+                <h4>Inventory</h4>
+                <p>View and manage available stock and product variants</p>
+            </div>
+            <span class="dash-arrow">→</span>
+        </div>
 
-        <button class="dashboard-card" type="button" data-page="sales">
-            <span class="icon">↗</span>
-            <b>Sales</b>
-            <small>Create and manage customer sales</small>
-        </button>
+        <div class="dash-card" data-page="sales">
+            <div class="dash-icon sales-icon">↗</div>
+            <div class="dash-info">
+                <h4>Sales</h4>
+                <p>Create and record customer sales receipts quickly</p>
+            </div>
+            <span class="dash-arrow">→</span>
+        </div>
 
-        <button class="dashboard-card" type="button" data-page="reports">
-            <span class="icon">▤</span>
-            <b>Reports</b>
-            <small>View business performance and profit</small>
-        </button>
+        <div class="dash-card" data-page="viewsales" data-admin-only>
+            <div class="dash-icon viewsales-icon">▣</div>
+            <div class="dash-info">
+                <h4>View Sales</h4>
+                <p>Check invoices, track payments, and update delivery status</p>
+            </div>
+            <span class="dash-arrow">→</span>
+        </div>
 
-        <button class="dashboard-card" type="button" data-page="viewsales">
-            <span class="icon">▣</span>
-            <b>View Sales</b>
-            <small>Check invoices, payments and deliveries</small>
-        </button>
+        <div class="dash-card" data-page="reports" data-admin-only>
+            <div class="dash-icon reports-icon">▤</div>
+            <div class="dash-info">
+                <h4>Reports</h4>
+                <p>Analyze overall business performance, revenue, and profit</p>
+            </div>
+            <span class="dash-arrow">→</span>
+        </div>
 
-        <button class="dashboard-card" type="button" data-page="opex">
-            <span class="icon">₹</span>
-            <b>OPEX</b>
-            <small>Manage operating expenses</small>
-        </button>
+        <div class="dash-card" data-page="opex" data-admin-only>
+            <div class="dash-icon opex-icon">₹</div>
+            <div class="dash-info">
+                <h4>OPEX</h4>
+                <p>Record, categorize, and manage operating expenses & salaries</p>
+            </div>
+            <span class="dash-arrow">→</span>
+        </div>
 
     </div>
 
