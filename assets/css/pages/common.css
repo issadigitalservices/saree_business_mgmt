@@ -1,4 +1,3 @@
-
 /* =====================================
    SAREEDESK - COMMON STYLES
    Shared layout, login, navigation,
@@ -391,32 +390,37 @@ th {
     opacity: 1;
 }
 
-/* HOME SHORTCUT */
+/* HOME SHORTCUT (DESKTOP DEFAULT) */
 
-/* Enable and position the single Home button on mobile */
-    .home-bottom {
-        display: inline-flex !important;
-        position: fixed !important;
-        bottom: calc(16px + env(safe-area-inset-bottom)) !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        width: auto !important;
-        min-width: 140px;
-        justify-content: center;
-        z-index: 1200;
-        box-shadow: 0 6px 20px rgba(20, 123, 115, 0.4);
-    }
+.home-bottom {
+    position: fixed;
+    bottom: 22px;
+    left: calc(225px + (100% - 225px) / 2);
+    transform: translateX(-50%);
+    z-index: 999;
+    background: #147b73;
+    color: #fff;
+    border: none;
+    border-radius: 30px;
+    padding: 13px 30px;
+    font-size: 15px;
+    font-weight: 700;
+    box-shadow: 0 5px 18px rgba(20, 123, 115, .3);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
 
 .home-bottom:hover {
     background: #105f59;
 }
 
-/* TABLET */
+/* TABLET (701px to 1100px) */
 
-@media (max-width: 700px) {
-    /* Completely hide the sidebar on mobile */
+@media (min-width: 701px) and (max-width: 1100px) {
     aside {
-        display: none !important;
+        width: 66px;
+        padding: 14px 7px;
     }
 
     .brand b,
@@ -440,7 +444,7 @@ th {
     }
 
     #screen {
-        padding: 18px;
+        padding: 22px 20px;
     }
 
     header {
@@ -458,13 +462,7 @@ th {
     }
 }
 
-@media (min-width: 701px) and (max-width: 1100px) {
-    #screen {
-        padding: 22px 20px;
-    }
-}
-
-/* MOBILE */
+/* MOBILE (max-width: 700px) */
 
 @media (max-width: 700px) {
     html,
@@ -474,55 +472,14 @@ th {
         overflow-x: hidden;
     }
 
+    /* Completely hide sidebar and desktop drawer/nav on mobile */
     aside {
-        position: fixed;
-        inset: auto 0 0 0;
-        width: 100%;
-        height: auto;
-        min-height: 66px;
-        padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
-        z-index: 1100;
-        display: block;
-        border-radius: 14px 14px 0 0;
-        box-shadow: 0 -4px 20px rgba(0, 0, 0, .12);
-    }
-
-    .brand,
-    aside .bottom {
         display: none !important;
     }
 
-    aside nav {
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 5px;
-        width: 100%;
-        overflow-x: auto;
-        overflow-y: hidden;
-        scrollbar-width: none;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    aside nav::-webkit-scrollbar {
-        display: none;
-    }
-
-    aside nav button {
-        flex: 1 0 70px;
-        min-width: 70px;
-        min-height: 52px;
-        padding: 7px 5px;
-        margin: 0;
-        border-radius: 9px;
-        font-size: 11px;
-        line-height: 1.2;
-        text-align: center;
-        white-space: normal;
-    }
-
+    /* Expand main content full width and leave padding at bottom for home button */
     main {
-        width: 100%;
+        width: 100% !important;
         margin-left: 0 !important;
         padding-bottom: calc(95px + env(safe-area-inset-bottom)) !important;
     }
@@ -647,8 +604,18 @@ th {
         z-index: 1200;
     }
 
+    /* Single persistent Home button fixed cleanly at bottom center on mobile */
     .home-bottom {
-        display: none !important;
+        display: inline-flex !important;
+        position: fixed !important;
+        bottom: calc(18px + env(safe-area-inset-bottom)) !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        z-index: 1200 !important;
+        width: auto !important;
+        min-width: 150px;
+        padding: 12px 28px;
+        box-shadow: 0 6px 20px rgba(20, 123, 115, 0.4);
     }
 }
 
@@ -670,12 +637,6 @@ th {
 
     .stats {
         grid-template-columns: 1fr;
-    }
-
-    aside nav button {
-        flex-basis: 64px;
-        min-width: 64px;
-        font-size: 10px;
     }
 }
 
