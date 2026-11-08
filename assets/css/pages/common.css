@@ -393,21 +393,19 @@ th {
 
 /* HOME SHORTCUT */
 
-.home-bottom {
-    position: fixed;
-    bottom: 22px;
-    left: calc(225px + (100% - 225px) / 2);
-    transform: translateX(-50%);
-    z-index: 999;
-    background: #147b73;
-    color: #fff;
-    border: none;
-    border-radius: 30px;
-    padding: 13px 30px;
-    font-size: 15px;
-    font-weight: 700;
-    box-shadow: 0 5px 18px rgba(20, 123, 115, .3);
-}
+/* Enable and position the single Home button on mobile */
+    .home-bottom {
+        display: inline-flex !important;
+        position: fixed !important;
+        bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: auto !important;
+        min-width: 140px;
+        justify-content: center;
+        z-index: 1200;
+        box-shadow: 0 6px 20px rgba(20, 123, 115, 0.4);
+    }
 
 .home-bottom:hover {
     background: #105f59;
@@ -415,10 +413,10 @@ th {
 
 /* TABLET */
 
-@media (max-width: 850px) {
+@media (max-width: 700px) {
+    /* Completely hide the sidebar on mobile */
     aside {
-        width: 66px;
-        padding: 14px 7px;
+        display: none !important;
     }
 
     .brand b,
@@ -526,7 +524,7 @@ th {
     main {
         width: 100%;
         margin-left: 0 !important;
-        padding-bottom: calc(85px + env(safe-area-inset-bottom));
+        padding-bottom: calc(95px + env(safe-area-inset-bottom)) !important;
     }
 
     header {
