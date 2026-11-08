@@ -467,17 +467,17 @@ async function initializeAuthentication() {
         await setPersistence(auth, browserLocalPersistence);
         console.log('LOCAL AUTH PERSISTENCE ENABLED');
 
-        let isInitialCheck = true;
+        // Check if there is already a cached session right this second
+        if (auth.currentUser) {
+            $('login').classList.add('hidden');
+            $('app').classList.remove('hidden');
+        }
 
         onAuthStateChanged(auth, async user => {
 
             if (!user) {
-                // If it's the very first load, don't instantly throw them to login 
-                // while Firebase is still fetching the auth token from storage!
-                if (isInitialCheck) {
-                    // Wait a brief moment on initial load to let Firebase hydrate
-                    return;
-                }
+                // Only drop to login if there is truly no user and no cached session
+                if (auth.currentUser) return;
 
                 currentUser = null;
                 currentProfile = null;
@@ -490,8 +490,6 @@ async function initializeAuthentication() {
                 return;
             }
 
-            // Once user is confirmed, mark initial check as done
-            isInitialCheck = false;
             console.log('AUTHENTICATED UID:', user.uid);
 
             try {
@@ -516,6 +514,7 @@ async function initializeAuthentication() {
 
                 currentProfile = data;
 
+                // Ensure app is visible and login is hidden instantly
                 $('login').classList.add('hidden');
                 $('app').classList.remove('hidden');
 
@@ -545,16 +544,6 @@ async function initializeAuthentication() {
                 `;
             }
         });
-
-        // Fallback safety net: If Firebase takes longer than 1.5 seconds 
-        // to respond on initial load, show login screen if no user exists.
-        setTimeout(() => {
-            if (isInitialCheck && !auth.currentUser) {
-                isInitialCheck = false;
-                $('login').classList.remove('hidden');
-                $('app').classList.add('hidden');
-            }
-        }, 1500);
 
     } catch (error) {
         console.error('AUTH INITIALIZATION ERROR:', error);
