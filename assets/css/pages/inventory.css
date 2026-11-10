@@ -88,6 +88,19 @@
     font-size: 12px;
 }
 
+/* Ensure table card contains horizontal scroll properly on mobile */
+.table-card {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 /* Enable smooth horizontal side-scrolling on mobile */
 .inventory-page .tablewrap,
 .inventory-page .table-wrap {
