@@ -65,7 +65,7 @@ export async function initOpex({ db, user, profile }) {
 
     let editingExpenseId = null;
     let expenses = [];
-    let currentFilter = 'all'; // <--- ADD THIS LINE HERE
+    let selectedStaffFilter = 'all';
 
     root.innerHTML = `
         <div class="page-intro">
@@ -191,10 +191,14 @@ export async function initOpex({ db, user, profile }) {
 
             <div class="expense-history-heading">
                 <h3>Expense History</h3>
-                <div class="expense-filters" style="display: flex; gap: 8px; align-items: center;">
-                    <button type="button" id="filterAllBtn" class="inventory-filter" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; border: 1px solid #147f78; background: #147f78; color: #fff;">All</button>
-                    <button type="button" id="filterSalaryBtn" class="inventory-filter" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; border: 1px solid #cbd5e1; background: #fff; color: #334155;">Salary Only</button>
-                    <span id="expenseHistoryCount" style="margin-left: 10px;">0 records</span>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <select id="historyStaffFilter" style="padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; background: #fff; color: #334155; outline: none;">
+                        <option value="all">All Staff & Expenses</option>
+                        ${SALARY_STAFF.map(name => `
+                            <option value="${name}">${name}</option>
+                        `).join('')}
+                    </select>
+                    <span id="expenseHistoryCount">0 records</span>
                 </div>
             </div>
 
@@ -298,32 +302,32 @@ export async function initOpex({ db, user, profile }) {
     }
 
     function renderTable() {
-        const displayedExpenses = currentFilter === 'salary'
-            ? expenses.filter(item => item.category === 'Salary')
-            : expenses;
+    const displayedExpenses = selectedStaffFilter === 'all'
+        ? expenses
+        : expenses.filter(item => item.staffName === selectedStaffFilter || item.description === `Salary of ${selectedStaffFilter}`);
 
-        $('expenseHistoryCount').textContent = `${displayedExpenses.length} records`;
+    $('expenseHistoryCount').textContent = `${displayedExpenses.length} records`;
 
-        if (displayedExpenses.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="5">No expense records found.</td></tr>`;
-            return;
-        }
-
-        tableBody.innerHTML = displayedExpenses.map(expense => `
-            <tr>
-                <td>${escapeHTML(expense.date)}</td>
-                <td>${escapeHTML(expense.category)}</td>
-                <td>${escapeHTML(expense.description)}</td>
-                <td><strong>${money(expense.amount)}</strong></td>
-                <td>
-                    <div class="expense-row-actions">
-                        <button type="button" class="edit-btn" data-action="edit" data-id="${escapeHTML(expense.id)}">Edit</button>
-                        <button type="button" class="delete-btn" data-action="delete" data-id="${escapeHTML(expense.id)}">Delete</button>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
+    if (displayedExpenses.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="5">No expense records found.</td></tr>`;
+        return;
     }
+
+    tableBody.innerHTML = displayedExpenses.map(expense => `
+        <tr>
+            <td>${escapeHTML(expense.date)}</td>
+            <td>${escapeHTML(expense.category)}</td>
+            <td>${escapeHTML(expense.description)}</td>
+            <td><strong>${money(expense.amount)}</strong></td>
+            <td>
+                <div class="expense-row-actions">
+                    <button type="button" class="edit-btn" data-action="edit" data-id="${escapeHTML(expense.id)}">Edit</button>
+                    <button type="button" class="delete-btn" data-action="delete" data-id="${escapeHTML(expense.id)}">Delete</button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
 
     // RESET FORM
     function resetForm() {
@@ -404,57 +408,7 @@ export async function initOpex({ db, user, profile }) {
 
             // Update total and record count
             updateExpenseSummary();
-
-            if (expenses.length === 0) {
-
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="5">No expenses recorded yet.</td>
-                    </tr>
-                `;
-
-                return;
-            }
-
-            tableBody.innerHTML = expenses.map(expense => `
-                <tr>
-
-                    <td>${escapeHTML(expense.date)}</td>
-
-                    <td>${escapeHTML(expense.category)}</td>
-
-                    <td>${escapeHTML(expense.description)}</td>
-
-                    <td>
-                        <strong>${money(expense.amount)}</strong>
-                    </td>
-
-                    <td>
-                        <div class="expense-row-actions">
-
-                            <button
-                                type="button"
-                                class="edit-btn"
-                                data-action="edit"
-                                data-id="${escapeHTML(expense.id)}"
-                            >
-                                Edit
-                            </button>
-
-                            <button
-                                type="button"
-                                class="delete-btn"
-                                data-action="delete"
-                                data-id="${escapeHTML(expense.id)}"
-                            >
-                                Delete
-                            </button>
-
-                        </div>
-                    </td>
-
-                </tr>
-            `).join('');
+            renderTable(); // <--- This handles rendering based on the selected staff dropdown automatically
 
         } catch (error) {
 
@@ -558,35 +512,14 @@ export async function initOpex({ db, user, profile }) {
 
         }
     });
-
-    $('filterAllBtn').addEventListener('click', () => {
-        currentFilter = 'all';
-        $('filterAllBtn').style.background = '#147f78';
-        $('filterAllBtn').style.color = '#fff';
-        $('filterAllBtn').style.borderColor = '#147f78';
-
-        $('filterSalaryBtn').style.background = '#fff';
-        $('filterSalaryBtn').style.color = '#334155';
-        $('filterSalaryBtn').style.borderColor = '#cbd5e1';
-
-        renderTable();
-    });
-
-    $('filterSalaryBtn').addEventListener('click', () => {
-        currentFilter = 'salary';
-        $('filterSalaryBtn').style.background = '#147f78';
-        $('filterSalaryBtn').style.color = '#fff';
-        $('filterSalaryBtn').style.borderColor = '#147f78';
-
-        $('filterAllBtn').style.background = '#fff';
-        $('filterAllBtn').style.color = '#334155';
-        $('filterAllBtn').style.borderColor = '#cbd5e1';
-
-        renderTable();
-    });
-
-    // CANCEL EDIT
+// CANCEL EDIT
     cancelButton.addEventListener('click', resetForm);
+
+    // STAFF FILTER DROPDOWN LISTENER
+    $('historyStaffFilter').addEventListener('change', (e) => {
+        selectedStaffFilter = e.target.value;
+        renderTable();
+    });
 
     // EDIT AND DELETE
     tableBody.addEventListener('click', async event => {
@@ -609,6 +542,7 @@ export async function initOpex({ db, user, profile }) {
 
             return;
         }
+
 
         // EDIT
         if (action === 'edit') {

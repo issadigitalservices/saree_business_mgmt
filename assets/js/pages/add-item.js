@@ -592,7 +592,6 @@ export async function initAddItem({
             reader.readAsDataURL(fileToProcess);
         });
     }
-    
     /* ---------------------------------
        UPDATE EXISTING PRODUCT
     --------------------------------- */

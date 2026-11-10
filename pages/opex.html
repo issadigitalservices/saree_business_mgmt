@@ -88,7 +88,16 @@
 
         <div class="table-heading">
             <h3>Expense History</h3>
-            <span id="opexHistoryCount">0 records</span>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <select id="historyStaffFilter" style="padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; background: #fff; color: #334155; outline: none;">
+                    <option value="all">All Staff & Expenses</option>
+                    <option value="Jaya">Jaya</option>
+                    <option value="Balu">Balu</option>
+                    <option value="Contribution">Contribution</option>
+                    <option value="Other">Other</option>
+                </select>
+                <span id="opexHistoryCount">0 records</span>
+            </div>
         </div>
 
         <div class="table-wrap">

@@ -482,7 +482,7 @@ if (values.paid > values.total) {
                     : 0;
 
                 const nextNumber = lastNumber + 1;
-                invoice = `Rpt-${String(nextNumber).padStart(6, '0')}`;
+                invoice = `Rct-${String(nextNumber).padStart(6, '0')}`;
 
                 const updatedProducts = [];
 

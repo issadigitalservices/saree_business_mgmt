@@ -157,7 +157,7 @@ export async function initViewSales({ db, user, profile }) {
 
         if (!records.length) {
             body.innerHTML = `
-                <tr><td colspan="13" class="empty-state">No receipts found.</td></tr>
+                <tr><td colspan="15" class="empty-state">No receipts found.</td></tr>
             `;
             return;
         }
@@ -166,7 +166,13 @@ export async function initViewSales({ db, user, profile }) {
 
             const items = getItems(sale);
             const names = items.map(item => item.name).filter(Boolean).join(', ');
+            const codes = items.map(item => item.code || '-').filter(Boolean).join(', ');
             const qty = items.reduce((sum, item) => sum + number(item.qty), 0);
+            
+            const costTotal = sale.costTotal !== undefined
+                ? number(sale.costTotal)
+                : items.reduce((sum, item) => sum + number(item.qty) * number(item.unitCost), 0);
+
             const discount = number(sale.discount);
             const due = number(sale.paymentDue);
 
@@ -177,6 +183,8 @@ export async function initViewSales({ db, user, profile }) {
                     <td>${esc(sale.customer || '-')}</td>
                     <td title="${esc(names)}">${esc(names || '-')}</td>
                     <td>${qty}</td>
+                    <td>${esc(codes)}</td>
+                    <td>${money(costTotal)}</td>
                     <td>${money(discount)}</td>
                     <td>${money(sale.total)}</td>
                     <td>${money(getProfit(sale))}</td>
