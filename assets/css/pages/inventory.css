@@ -88,15 +88,18 @@
     font-size: 12px;
 }
 
+/* Enable smooth horizontal side-scrolling on mobile */
+.inventory-page .tablewrap,
 .inventory-page .table-wrap {
     width: 100%;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .inventory-page .data-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 760px;
+    min-width: 760px; /* Forces table to stay wide so user can scroll naturally sideways */
 }
 
 .inventory-page .data-table th,
