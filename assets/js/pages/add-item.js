@@ -489,46 +489,68 @@ export async function initAddItem({
         });
     }
 
-    // ROBUST FAST COMPRESSION FOR ALL FORMATS (INCLUDING IPHONE HEIC)
+    // ROBUST FAST COMPRESSION WITH HEIC SUPPORT FOR IPHONES
     async function compressImage(file) {
+        let fileToProcess = file;
+        
         // Check if file is HEIC/HEIF from iOS
         const isHeic = file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
 
-        // For standard formats, try createImageBitmap first for speed
-        if (!isHeic) {
+        // If it's a HEIC file, convert it to a standard JPEG blob first using heic2any
+        if (isHeic && window.heic2any) {
             try {
-                const bitmap = await createImageBitmap(file);
-                let width = bitmap.width;
-                let height = bitmap.height;
-
-                const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(width, height));
-                width = Math.round(width * scale);
-                height = Math.round(height * scale);
-
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-
-                const context = canvas.getContext('2d', { alpha: false });
-                context.drawImage(bitmap, 0, 0, width, height);
-                bitmap.close();
-
-                const blob = await new Promise(resolve => {
-                    canvas.toBlob(resolve, 'image/webp', IMAGE_QUALITY);
+                const convertedBlob = await window.heic2any({
+                    blob: file,
+                    toType: 'image/jpeg',
+                    quality: 0.85
                 });
-
-                if (blob) {
-                    return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.webp', {
-                        type: 'image/webp',
-                        lastModified: Date.now()
-                    });
-                }
-            } catch (err) {
-                console.warn('Bitmap fast-path failed, falling back to FileReader:', err);
+                // Handle case where heic2any returns an array of blobs or a single blob
+                const finalBlob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+                fileToProcess = new File([finalBlob], file.name.replace(/\.[^.]+$/, '') + '.jpg', {
+                    type: 'image/jpeg',
+                    lastModified: Date.now()
+                });
+            } catch (heicErr) {
+                console.warn('heic2any conversion error:', heicErr);
+                throw new Error('Unable to convert iPhone HEIC image. Please save image as JPG/PNG.');
             }
         }
 
-        // Universal FileReader fallback (handles iPhones, HEIC wrappers, and custom containers)
+        // Standard fast compression path for JPEG, PNG, WebP, etc.
+        try {
+            const bitmap = await createImageBitmap(fileToProcess);
+            let width = bitmap.width;
+            let height = bitmap.height;
+
+            const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(width, height));
+            width = Math.round(width * scale);
+            height = Math.round(height * scale);
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+
+            const context = canvas.getContext('2d', { alpha: false });
+            context.fillStyle = '#FFFFFF';
+            context.fillRect(0, 0, width, height);
+            context.drawImage(bitmap, 0, 0, width, height);
+            bitmap.close();
+
+            const blob = await new Promise(resolve => {
+                canvas.toBlob(resolve, 'image/webp', IMAGE_QUALITY);
+            });
+
+            if (blob) {
+                return new File([blob], fileToProcess.name.replace(/\.[^.]+$/, '') + '.webp', {
+                    type: 'image/webp',
+                    lastModified: Date.now()
+                });
+            }
+        } catch (err) {
+            console.warn('Bitmap fast-path failed, using FileReader fallback:', err);
+        }
+
+        // FileReader fallback container
         return await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (event) => {
@@ -546,10 +568,8 @@ export async function initAddItem({
                     canvas.height = height;
 
                     const ctx = canvas.getContext('2d', { alpha: false });
-                    // Fill white background to prevent transparent png/heic black artifact issues
                     ctx.fillStyle = '#FFFFFF';
                     ctx.fillRect(0, 0, width, height);
-                    
                     ctx.drawImage(img, 0, 0, width, height);
 
                     canvas.toBlob(blob => {
@@ -557,21 +577,22 @@ export async function initAddItem({
                             reject(new Error('Canvas image compression failed.'));
                             return;
                         }
-                        resolve(new File([blob], file.name.replace(/\.[^.]+$/, '') + '.webp', {
+                        resolve(new File([blob], fileToProcess.name.replace(/\.[^.]+$/, '') + '.webp', {
                             type: 'image/webp',
                             lastModified: Date.now()
                         }));
                     }, 'image/webp', IMAGE_QUALITY);
                 };
                 img.onerror = () => {
-                    reject(new Error('Your iPhone image format could not be decoded. Please choose a JPG or PNG image.'));
+                    reject(new Error('Could not decode image file. Please try another image.'));
                 };
                 img.src = event.target.result;
             };
             reader.onerror = () => reject(new Error('Failed to read image file.'));
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(fileToProcess);
         });
     }
+    
     /* ---------------------------------
        UPDATE EXISTING PRODUCT
     --------------------------------- */
