@@ -489,84 +489,89 @@ export async function initAddItem({
         });
     }
 
-    // ROBUST FAST COMPRESSION FOR ALL FORMATS
+    // ROBUST FAST COMPRESSION FOR ALL FORMATS (INCLUDING IPHONE HEIC)
     async function compressImage(file) {
-        let bitmap;
-        try {
-            bitmap = await createImageBitmap(file);
-        } catch (e) {
-            // Fallback for uncommon containers via FileReader if createImageBitmap fails
-            return await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        let width = img.width;
-                        let height = img.height;
-                        const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(width, height));
-                        width = Math.round(width * scale);
-                        height = Math.round(height * scale);
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d', { alpha: false });
-                        ctx.drawImage(img, 0, 0, width, height);
-                        canvas.toBlob(blob => {
-                            if (!blob) {
-                                reject(new Error('Canvas conversion failed'));
-                                return;
-                            }
-                            resolve(new File([blob], file.name.replace(/\.[^.]+$/, '') + '.webp', {
-                                type: 'image/webp',
-                                lastModified: Date.now()
-                            }));
-                        }, 'image/webp', IMAGE_QUALITY);
-                    };
-                    img.onerror = reject;
-                    img.src = event.target.result;
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-        }
+        // Check if file is HEIC/HEIF from iOS
+        const isHeic = file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
 
-        let width = bitmap.width;
-        let height = bitmap.height;
+        // For standard formats, try createImageBitmap first for speed
+        if (!isHeic) {
+            try {
+                const bitmap = await createImageBitmap(file);
+                let width = bitmap.width;
+                let height = bitmap.height;
 
-        const scale = Math.min(
-            1,
-            MAX_IMAGE_DIMENSION / Math.max(width, height)
-        );
+                const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(width, height));
+                width = Math.round(width * scale);
+                height = Math.round(height * scale);
 
-        width = Math.round(width * scale);
-        height = Math.round(height * scale);
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
 
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
+                const context = canvas.getContext('2d', { alpha: false });
+                context.drawImage(bitmap, 0, 0, width, height);
+                bitmap.close();
 
-        const context = canvas.getContext('2d', { alpha: false });
-        context.drawImage(bitmap, 0, 0, width, height);
-        bitmap.close();
+                const blob = await new Promise(resolve => {
+                    canvas.toBlob(resolve, 'image/webp', IMAGE_QUALITY);
+                });
 
-        const blob = await new Promise(resolve => {
-            canvas.toBlob(resolve, 'image/webp', IMAGE_QUALITY);
-        });
-
-        if (!blob) {
-            throw new Error('Unable to compress image.');
-        }
-
-        return new File(
-            [blob],
-            file.name.replace(/\.[^.]+$/, '') + '.webp',
-            {
-                type: 'image/webp',
-                lastModified: Date.now()
+                if (blob) {
+                    return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.webp', {
+                        type: 'image/webp',
+                        lastModified: Date.now()
+                    });
+                }
+            } catch (err) {
+                console.warn('Bitmap fast-path failed, falling back to FileReader:', err);
             }
-        );
-    }
+        }
 
+        // Universal FileReader fallback (handles iPhones, HEIC wrappers, and custom containers)
+        return await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width || 1280;
+                    let height = img.height || 1280;
+
+                    const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(width, height));
+                    width = Math.round(width * scale);
+                    height = Math.round(height * scale);
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx = canvas.getContext('2d', { alpha: false });
+                    // Fill white background to prevent transparent png/heic black artifact issues
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, width, height);
+                    
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob(blob => {
+                        if (!blob) {
+                            reject(new Error('Canvas image compression failed.'));
+                            return;
+                        }
+                        resolve(new File([blob], file.name.replace(/\.[^.]+$/, '') + '.webp', {
+                            type: 'image/webp',
+                            lastModified: Date.now()
+                        }));
+                    }, 'image/webp', IMAGE_QUALITY);
+                };
+                img.onerror = () => {
+                    reject(new Error('Your iPhone image format could not be decoded. Please choose a JPG or PNG image.'));
+                };
+                img.src = event.target.result;
+            };
+            reader.onerror = () => reject(new Error('Failed to read image file.'));
+            reader.readAsDataURL(file);
+        });
+    }
     /* ---------------------------------
        UPDATE EXISTING PRODUCT
     --------------------------------- */
