@@ -153,7 +153,7 @@ export async function initAddItem({
     destination.addEventListener('change', toggleDestination);
 
     /* ---------------------------------
-       IMAGE PREVIEW
+       IMAGE PREVIEW & VALIDATION
     --------------------------------- */
 
     imageInput.addEventListener('change', async () => {
@@ -163,12 +163,16 @@ export async function initAddItem({
 
         if (!file) return;
 
-        // Check if file type is an image (allow any image/* mime type or explicit allowed list fallback)
-        const isSupportedType = ALLOWED_IMAGE_TYPES.includes(file.type) || file.type.startsWith('image/');
+        // Extract file extension to support robust format checking
+        const fileName = file.name.toLowerCase();
+        const validExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif', '.avif', '.bmp'];
+        const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
+        const isImageMime = file.type && file.type.startsWith('image/');
 
-        if (!isSupportedType) {
+        // Allow if it's recognized as an image mime or has a valid image extension
+        if (!isImageMime && !hasValidExtension) {
             setMessage(
-                'Please select a valid image file.',
+                'Please select a valid image file (JPG, PNG, WebP, HEIC, etc.).',
                 'error'
             );
             imageInput.value = '';
@@ -177,7 +181,7 @@ export async function initAddItem({
 
         if (file.size > MAX_ORIGINAL_IMAGE_SIZE) {
             setMessage(
-                'Original image must not exceed 25 MB.',
+                'Original image must not exceed 8 MB.',
                 'error'
             );
             imageInput.value = '';
@@ -202,7 +206,7 @@ export async function initAddItem({
                     (compressedFile.size / 1024).toFixed(0);
 
                 setMessage(
-                    `Image processed: ${originalSize} KB → ${compressedSize} KB`,
+                    `Image processed successfully: ${originalSize} KB → ${compressedSize} KB`,
                     'success'
                 );
             };
@@ -216,7 +220,7 @@ export async function initAddItem({
             imageInput.value = '';
 
             setMessage(
-                error.message || 'Unable to process image. Please try another file.',
+                'Unable to process this image format. Please try another image or save as JPG/PNG.',
                 'error'
             );
         }
@@ -485,14 +489,50 @@ export async function initAddItem({
         });
     }
 
-    // FAST COMPRESSION BEFORE UPLOAD
+    // ROBUST FAST COMPRESSION FOR ALL FORMATS
     async function compressImage(file) {
-        const bitmap = await createImageBitmap(file);
+        let bitmap;
+        try {
+            bitmap = await createImageBitmap(file);
+        } catch (e) {
+            // Fallback for uncommon containers via FileReader if createImageBitmap fails
+            return await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(width, height));
+                        width = Math.round(width * scale);
+                        height = Math.round(height * scale);
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d', { alpha: false });
+                        ctx.drawImage(img, 0, 0, width, height);
+                        canvas.toBlob(blob => {
+                            if (!blob) {
+                                reject(new Error('Canvas conversion failed'));
+                                return;
+                            }
+                            resolve(new File([blob], file.name.replace(/\.[^.]+$/, '') + '.webp', {
+                                type: 'image/webp',
+                                lastModified: Date.now()
+                            }));
+                        }, 'image/webp', IMAGE_QUALITY);
+                    };
+                    img.onerror = reject;
+                    img.src = event.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
 
         let width = bitmap.width;
         let height = bitmap.height;
 
-        // Resize quickly while maintaining aspect ratio
         const scale = Math.min(
             1,
             MAX_IMAGE_DIMENSION / Math.max(width, height)
@@ -502,16 +542,13 @@ export async function initAddItem({
         height = Math.round(height * scale);
 
         const canvas = document.createElement('canvas');
-
         canvas.width = width;
         canvas.height = height;
 
-        const context = canvas.getContext('2d', { alpha: false }); // Disable alpha channel for faster rendering if not needed
-
+        const context = canvas.getContext('2d', { alpha: false });
         context.drawImage(bitmap, 0, 0, width, height);
         bitmap.close();
 
-        // Convert and compress to WebP rapidly
         const blob = await new Promise(resolve => {
             canvas.toBlob(resolve, 'image/webp', IMAGE_QUALITY);
         });

@@ -127,6 +127,7 @@ export async function initOpex({ db, user, profile }) {
                         id="expenseAmount"
                         name="amount"
                         type="number"
+                        inputmode="decimal"
                         min="0.01"
                         step="0.01"
                         placeholder="Enter amount"
