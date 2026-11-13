@@ -38,6 +38,25 @@ export async function initReports({ db, profile }) {
 
     if (!content) return;
 
+
+const refreshButton = $('refreshReportsBtn');
+
+if (refreshButton) {
+    refreshButton.onclick = async () => {
+
+        refreshButton.disabled = true;
+        refreshButton.textContent = '↻ Refreshing...';
+
+        try {
+            await initReports({ db, profile });
+        } finally {
+            refreshButton.disabled = false;
+            refreshButton.textContent = '↻ Refresh';
+        }
+    };
+}
+
+
     /* ---------------------------------
        ADMIN ACCESS
     --------------------------------- */

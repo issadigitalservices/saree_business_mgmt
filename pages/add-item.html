@@ -62,15 +62,47 @@
     >
 </label>
 
-                <label class="full">
-                    Product Image
-                    <input id="productImage" type="file" accept="image/*">
-                    <small>Maximum image size: 5 MB</small>
-                </label>
+                
+<label class="full">
+    Product Image
 
-                <div class="image-preview-wrap full">
-                    <img id="imagePreview" class="image-preview hidden" alt="Product preview">
-                </div>
+    <input
+        id="productImage"
+        type="file"
+        accept="image/*"
+    >
+
+    <small>Maximum image size: 8 MB</small>
+</label>
+
+<div class="image-preview-wrap full">
+
+    <img
+        id="imagePreview"
+        class="image-preview hidden"
+        alt="Product preview"
+    >
+
+    <button
+        type="button"
+        id="removeProductImageBtn"
+        class="hidden"
+        style="
+            margin-top:10px;
+            padding:9px 16px;
+            background:#fee2e2;
+            color:#dc2626;
+            border:none;
+            border-radius:8px;
+            font-weight:600;
+            cursor:pointer;
+        "
+    >
+        Remove Image
+    </button>
+
+</div>
+
 
             </div>
         </div>

@@ -69,6 +69,41 @@ let selectedImageFile = null;
 let currentEditingId = null;
 let currentUser = null;
 
+
+let imageProcessingId = 0;
+
+function updateRemoveImageButton() {
+    const button = $('removeProductImageBtn');
+    if (!button) return;
+
+    const hasImage = Boolean(
+        selectedImageFile || currentImageUrl
+    );
+
+    button.classList.toggle('hidden', !hasImage);
+}
+
+function clearProductImage() {
+    imageProcessingId++;
+
+    selectedImageFile = null;
+    currentImageUrl = '';
+    currentImageKey = '';
+
+    const input = $('productImage');
+    const preview = $('imagePreview');
+
+    if (input) input.value = '';
+
+    if (preview) {
+        preview.removeAttribute('src');
+        preview.classList.add('hidden');
+    }
+
+    updateRemoveImageButton();
+}
+
+
 export async function initAddItem({
     db,
     storage, // Kept for compatibility with the existing app router.
@@ -90,6 +125,23 @@ export async function initAddItem({
 
     const destination = $('destination');
     const imageInput = $('productImage');
+
+
+const removeImageButton = $('removeProductImageBtn');
+
+if (removeImageButton) {
+    removeImageButton.onclick = () => {
+
+        clearProductImage();
+
+        setMessage(
+            'Image removed. Save the item to confirm changes.',
+            'success'
+        );
+
+    };
+}
+
 
     /* ---------------------------------
        PRODUCT CODE PREVIEW
@@ -195,11 +247,17 @@ export async function initAddItem({
 
             selectedImageFile = compressedFile;
 
+            updateRemoveImageButton();
+
             const reader = new FileReader();
 
             reader.onload = () => {
-                $('imagePreview').src = reader.result;
-                $('imagePreview').classList.remove('hidden');
+                if (selectedImageFile !== compressedFile) return;
+
+$('imagePreview').src = reader.result;
+$('imagePreview').classList.remove('hidden');
+
+updateRemoveImageButton();
 
                 const originalSize = (file.size / 1024).toFixed(0);
                 const compressedSize =
@@ -346,9 +404,14 @@ export async function initAddItem({
             currentImageKey = product.imageKey || '';
 
             if (currentImageUrl) {
-                $('imagePreview').src = currentImageUrl;
-                $('imagePreview').classList.remove('hidden');
-            }
+    $('imagePreview').src = currentImageUrl;
+    $('imagePreview').classList.remove('hidden');
+} else {
+    $('imagePreview').removeAttribute('src');
+    $('imagePreview').classList.add('hidden');
+}
+
+updateRemoveImageButton();
 
             destination.value = 'stock';
             destination.disabled = true;
@@ -379,6 +442,7 @@ export async function initAddItem({
 
         $('imagePreview').src = '';
         $('imagePreview').classList.add('hidden');
+        updateRemoveImageButton();
 
         destination.disabled = false;
         destination.value = 'stock';

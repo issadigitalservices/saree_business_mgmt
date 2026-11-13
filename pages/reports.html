@@ -1,9 +1,37 @@
 <div class="reports-page">
 
-    <div class="intro">
+    
+<div class="intro">
+
+    <div style="display:flex;
+                justify-content:space-between;
+                align-items:center;
+                gap:15px;
+                flex-wrap:wrap;">
+
         <h3>Business Reports</h3>
-        <p>Review your sales, expenses, inventory and estimated profitability.</p>
+
+        <button
+            type="button"
+            id="refreshReportsBtn"
+            class="primary"
+            style="width:auto;
+                   padding:11px 20px;
+                   background:#117f78;
+                   color:#ffffff;
+                   border:none;
+                   border-radius:8px;
+                   font-weight:700;
+                   cursor:pointer;">
+            ↻ Refresh
+        </button>
+
     </div>
+
+    <p>Review your sales, expenses, inventory and estimated profitability.</p>
+
+</div>
+
 
     <div id="reportsLoading" class="report-status">
         Loading business reports...

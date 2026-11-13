@@ -45,12 +45,15 @@
     white-space: nowrap;
 }
 
-/* Cards Grid Layout */
+
+/* Cards Grid Layout - 3 Cards Per Row */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 20px;
+    width: 100%;
 }
+
 
 /* Individual Card Styling */
 .dash-card {
@@ -126,14 +129,26 @@
     color: #147f78;
 }
 
-/* Responsive adjustment for small screens */
+
+/* Tablet - 2 Cards Per Row */
+@media (min-width: 601px) and (max-width: 1024px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Mobile - 1 Card Per Row */
+@media (max-width: 600px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Hero Section - Mobile Responsive */
 @media (max-width: 768px) {
     .dashboard-hero {
         flex-direction: column;
         align-items: flex-start;
         gap: 15px;
-    }
-    .dashboard-grid {
-        grid-template-columns: 1fr;
     }
 }
