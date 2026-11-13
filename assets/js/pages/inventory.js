@@ -4,12 +4,14 @@
    Search, Filters, Export, Edit, Delete
 ===================================== */
 
+
 import {
     collection,
     getDocs,
     doc,
     deleteDoc
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+
 
 const $ = id => document.getElementById(id);
 
@@ -60,6 +62,14 @@ const escapeHTML = value => {
 
 let inventoryProducts = [];
 
+
+let soldQuantities = new Map();
+
+function getSoldQuantity(product) {
+    return soldQuantities.get(product.id) || 0;
+}
+
+
 export async function initInventory({
     db,
     go,
@@ -106,25 +116,27 @@ export async function initInventory({
 
     
 
+
+
 function updateFilterCounts() {
 
-    // Total number of product records
-    // Do not count stock quantities
+    // Total product records, not quantities
     const totalProducts = inventoryProducts.length;
 
-    // Total available stock quantity
+    // Total available units
     const inStockProducts = inventoryProducts.reduce(
         (total, product) =>
             total + Math.max(0, Number(product.stock) || 0),
         0
     );
 
-    // Number of sold-out product records
-    const soldOutProducts = inventoryProducts.filter(
-        product => Number(product.stock) === 0
-    ).length;
+    // Total sold units from actual sales receipts
+    const soldOutProducts = inventoryProducts.reduce(
+        (total, product) =>
+            total + getSoldQuantity(product),
+        0
+    );
 
-    // Update inventory summary cards
     const totalCount = $('filterTotalCount');
     const stockCount = $('filterStockCount');
     const soldCount = $('filterSoldCount');
@@ -133,7 +145,6 @@ function updateFilterCounts() {
     if (stockCount) stockCount.textContent = inStockProducts;
     if (soldCount) soldCount.textContent = soldOutProducts;
 }
-
 
 
     /* =====================================
@@ -160,9 +171,11 @@ function updateFilterCounts() {
                 matchesFilter = stock > 0;
             }
 
-            if (activeFilter === 'sold') {
-                matchesFilter = stock <= 0;
-            }
+            
+if (activeFilter === 'sold') {
+    matchesFilter = getSoldQuantity(product) > 0;
+}
+
 
             return matchesSearch && matchesFilter;
         });
@@ -393,64 +406,107 @@ function exportInventory() {
        LOAD PRODUCTS FROM FIRESTORE
     ===================================== */
 
-    async function loadInventory() {
-        if (refreshButton) {
-            refreshButton.disabled = true;
-            refreshButton.textContent = 'Loading...';
-        }
+    
+async function loadInventory() {
+
+    if (refreshButton) {
+        refreshButton.disabled = true;
+        refreshButton.textContent = 'Loading...';
+    }
+
+    tableBody.innerHTML = `
+        <tr>
+            <td colspan="9" class="empty-state">
+                Loading inventory...
+            </td>
+        </tr>
+    `;
+
+    showMessage('');
+
+    try {
+
+        // Load products and sales receipts
+        const [productSnapshot, salesSnapshot] = await Promise.all([
+            getDocs(collection(db, 'products')),
+            getDocs(collection(db, 'sales'))
+        ]);
+
+        inventoryProducts = productSnapshot.docs.map(document => ({
+            id: document.id,
+            ...document.data()
+        }));
+
+        inventoryProducts.sort((a, b) =>
+            String(b.code || '').localeCompare(String(a.code || ''))
+        );
+
+        // Calculate sold quantity by product ID
+        soldQuantities = new Map();
+
+        salesSnapshot.docs.forEach(document => {
+
+            const sale = document.data();
+
+            // Support current multi-product receipts
+            // and older single-product receipts
+            const items = Array.isArray(sale.items)
+                ? sale.items
+                : (sale.productId ? [{
+                    productId: sale.productId,
+                    qty: sale.qty
+                }] : []);
+
+            items.forEach(item => {
+
+                if (!item.productId) return;
+
+                const qty = Number(item.qty) || 0;
+
+                if (qty <= 0) return;
+
+                const previousQty =
+                    soldQuantities.get(item.productId) || 0;
+
+                soldQuantities.set(
+                    item.productId,
+                    previousQty + qty
+                );
+
+            });
+
+        });
+
+        updateFilterCounts();
+        applyFilters();
+
+    } catch (error) {
+
+        console.error('Inventory loading error:', error);
 
         tableBody.innerHTML = `
             <tr>
                 <td colspan="9" class="empty-state">
-                    Loading inventory...
+                    Unable to load inventory. Please try again.
                 </td>
             </tr>
         `;
 
-        showMessage();
+        showMessage(
+            error.message || 'Unable to load inventory.',
+            'error'
+        );
 
-        try {
-            const snapshot = await getDocs(
-                collection(db, 'products')
-            );
+    } finally {
 
-            inventoryProducts = snapshot.docs.map(document => ({
-                id: document.id,
-                ...document.data()
-            }));
-
-            inventoryProducts.sort((a, b) =>
-                String(b.code || '').localeCompare(String(a.code || ''))
-            );
-
-            updateFilterCounts();
-            applyFilters();
-
-        } catch (error) {
-            console.error('Inventory loading error:', error);
-
-            tableBody.innerHTML = `
-                <tr>
-                    <td colspan="7" class="empty-state">
-                        Unable to load inventory. Please try again.
-                    </td>
-                </tr>
-            `;
-
-            showMessage(
-                error.message || 'An error occurred while loading inventory.',
-                'error'
-            );
-
-        } finally {
-            if (refreshButton) {
-                refreshButton.disabled = false;
-                refreshButton.textContent = '↻ Refresh';
-            }
+        if (refreshButton) {
+            refreshButton.disabled = false;
+            refreshButton.textContent = '↻ Refresh';
         }
-    }
 
-    refreshButton?.addEventListener('click', loadInventory);
+    }
+}
+
 
     /* =====================================
        EDIT AND DELETE EVENTS

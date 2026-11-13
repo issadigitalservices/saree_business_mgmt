@@ -50,7 +50,7 @@ export async function initStaff({ db, user, profile }) {
 
         $('staffTableBody').innerHTML = `
             <tr>
-                <td colspan="4" class="empty-state">
+                <td colspan="5" class="empty-state">
                     Admin access required.
                 </td>
             </tr>
@@ -254,7 +254,7 @@ export async function initStaff({ db, user, profile }) {
 
             showMessage('Staff account activated successfully.', 'success');
 
-            
+
             form.reset();
             await loadStaff();
 
