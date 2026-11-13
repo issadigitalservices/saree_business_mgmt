@@ -2,9 +2,19 @@
    SAREEDESK - ADD ITEM PAGE
 ===================================== */
 
+
 .add-item-page {
     width: 100%;
+    max-width: none;
+    min-width: 0;
 }
+
+.add-item-page .form-card {
+    width: 100%;
+    max-width: none;
+    margin-top: 18px;
+}
+
 
 .form-card {
     background: #fff;
@@ -142,6 +152,31 @@
     }
 
     .form-actions button {
+        width: 100%;
+    }
+}
+
+
+/* DESKTOP LAYOUT */
+
+@media (min-width: 1101px) {
+
+    .add-item-page {
+        width: 100%;
+    }
+
+    .add-item-page .form-card {
+        width: 100%;
+        max-width: none;
+        padding: 28px 32px;
+    }
+
+    .add-item-page .form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+    }
+
+    .add-item-page .form-section {
         width: 100%;
     }
 }

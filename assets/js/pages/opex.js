@@ -278,28 +278,55 @@ export async function initOpex({ db, user, profile }) {
     }
 
     // UPDATE TOTAL EXPENSE & TOTAL SALARY SUMMARY
-    function updateExpenseSummary() {
+    
+function updateExpenseSummary() {
 
-        const total = expenses.reduce(
-            (sum, expense) => sum + Number(expense.amount || 0),
-            0
-        );
+    // Overall expenses across all staff and categories
+    const total = expenses.reduce(
+        (sum, expense) => sum + Number(expense.amount || 0),
+        0
+    );
 
-        const totalSalary = expenses.reduce(
-            (sum, expense) => expense.category === 'Salary' ? sum + Number(expense.amount || 0) : sum,
-            0
-        );
+    // Salary records for the selected employee
+    const filteredSalaryExpenses = expenses.filter(expense => {
 
-        $('totalExpenseAmount').textContent = money(total);
-        if ($('totalSalaryAmount')) {
-            $('totalSalaryAmount').textContent = money(totalSalary);
+        if (expense.category !== 'Salary') {
+            return false;
         }
 
-        $('expenseCount').textContent = expenses.length;
+        if (selectedStaffFilter === 'all') {
+            return true;
+        }
 
-        $('expenseHistoryCount').textContent =
-            `${expenses.length} records`;
+        return expense.staffName === selectedStaffFilter ||
+            expense.description === `Salary of ${selectedStaffFilter}`;
+    });
+
+    const totalSalary = filteredSalaryExpenses.reduce(
+        (sum, expense) => sum + Number(expense.amount || 0),
+        0
+    );
+
+    // Update summary cards
+    $('totalExpenseAmount').textContent = money(total);
+
+    if ($('totalSalaryAmount')) {
+        $('totalSalaryAmount').textContent = money(totalSalary);
     }
+
+    $('expenseCount').textContent = expenses.length;
+
+    const displayedExpenses = selectedStaffFilter === 'all'
+        ? expenses
+        : expenses.filter(expense =>
+            expense.staffName === selectedStaffFilter ||
+            expense.description === `Salary of ${selectedStaffFilter}`
+        );
+
+    $('expenseHistoryCount').textContent =
+        `${displayedExpenses.length} records`;
+}
+
 
     function renderTable() {
     const displayedExpenses = selectedStaffFilter === 'all'
@@ -516,10 +543,17 @@ export async function initOpex({ db, user, profile }) {
     cancelButton.addEventListener('click', resetForm);
 
     // STAFF FILTER DROPDOWN LISTENER
-    $('historyStaffFilter').addEventListener('change', (e) => {
-        selectedStaffFilter = e.target.value;
-        renderTable();
-    });
+    
+$('historyStaffFilter').addEventListener('change', (e) => {
+    selectedStaffFilter = e.target.value;
+
+    // Update salary summary for selected employee
+    updateExpenseSummary();
+
+    // Update expense history table
+    renderTable();
+});
+
 
     // EDIT AND DELETE
     tableBody.addEventListener('click', async event => {

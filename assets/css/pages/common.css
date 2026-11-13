@@ -189,9 +189,25 @@ nav button:hover {
     padding: 12px 0 0;
 }
 
+
 main {
     margin-left: 225px;
+    width: calc(100% - 225px);
+    min-width: 0;
 }
+
+main > header {
+    width: 100%;
+    max-width: none;
+}
+
+#screen {
+    width: 100%;
+    max-width: 1450px;
+    margin: 0 auto;
+    padding: 26px 30px 90px;
+}
+
 
 /* HEADER */
 

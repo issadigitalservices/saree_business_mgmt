@@ -104,26 +104,32 @@ export async function initInventory({
        UPDATE FILTER COUNTS
     ===================================== */
 
-    function updateFilterCounts() {
-        const totalProducts = inventoryProducts.length;
+    
+function updateFilterCounts() {
+    // Total available stock quantity
+    const inStockProducts = inventoryProducts.reduce(
+        (total, product) =>
+            total + Math.max(0, Number(product.stock) || 0),
+        0
+    );
 
-        const inStockProducts = inventoryProducts.filter(
-            product => Number(product.stock) > 0
-        ).length;
+    // Number of products with zero stock
+    const soldOutProducts = inventoryProducts.filter(
+        product => Number(product.stock) === 0
+    ).length;
 
-        const soldOutProducts = inventoryProducts.filter(
-            product => Number(product.stock) <= 0
-        ).length;
+    // Available units + sold-out product records
+    const totalProducts = inStockProducts + soldOutProducts;
 
-        // These elements are optional.
-        const totalCount = $('filterTotalCount');
-        const stockCount = $('filterStockCount');
-        const soldCount = $('filterSoldCount');
+    const totalCount = $('filterTotalCount');
+    const stockCount = $('filterStockCount');
+    const soldCount = $('filterSoldCount');
 
-        if (totalCount) totalCount.textContent = totalProducts;
-        if (stockCount) stockCount.textContent = inStockProducts;
-        if (soldCount) soldCount.textContent = soldOutProducts;
-    }
+    if (totalCount) totalCount.textContent = totalProducts;
+    if (stockCount) stockCount.textContent = inStockProducts;
+    if (soldCount) soldCount.textContent = soldOutProducts;
+}
+
 
     /* =====================================
        FILTER PRODUCTS

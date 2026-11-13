@@ -111,9 +111,17 @@ export async function initViewSales({ db, user, profile }) {
 
         $('totalInvoices').textContent = salesRecords.length;
 
-        $('totalSalesAmount').textContent = money(
-            salesRecords.reduce((sum, sale) => sum + number(sale.total), 0)
-        );
+        
+$('totalSalesAmount').textContent = money(
+    salesRecords.reduce((sum, sale) => {
+        const salesAmount = sale.subtotal !== undefined
+            ? number(sale.subtotal) - number(sale.discount)
+            : number(sale.total) - number(sale.courier);
+
+        return sum + salesAmount;
+    }, 0)
+);
+
 
         $('totalSalesProfit').textContent = money(
             salesRecords.reduce((sum, sale) => sum + getProfit(sale), 0)
@@ -186,7 +194,13 @@ export async function initViewSales({ db, user, profile }) {
                     <td>${esc(codes)}</td>
                     <td>${money(costTotal)}</td>
                     <td>${money(discount)}</td>
-                    <td>${money(sale.total)}</td>
+                    
+<td>${money(
+    sale.subtotal !== undefined
+        ? number(sale.subtotal) - number(sale.discount)
+        : number(sale.total) - number(sale.courier)
+)}</td>
+
                     <td>${money(getProfit(sale))}</td>
                     <td>${money(sale.paid)}</td>
                     <td>${money(due)}</td>

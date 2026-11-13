@@ -81,10 +81,20 @@ export async function initReports({ db, profile }) {
             return sum + safeNumber(sale.qty);
         }, 0);
 
-        const revenue = sales.reduce(
-            (sum, sale) => sum + safeNumber(sale.total),
-            0
-        );
+        
+const revenue = sales.reduce((sum, sale) => {
+    const subtotal = safeNumber(sale.subtotal);
+    const discount = safeNumber(sale.discount);
+
+    // Courier is excluded from business revenue.
+    // Fallback supports older sales records.
+    const salesAmount = sale.subtotal !== undefined
+        ? subtotal - discount
+        : safeNumber(sale.total) - safeNumber(sale.courier);
+
+    return sum + salesAmount;
+}, 0);
+
 
         const costOfGoodsSold = sales.reduce(
             (sum, sale) => sum + safeNumber(sale.costTotal),
@@ -114,6 +124,19 @@ export async function initReports({ db, profile }) {
             (sum, product) => sum + safeNumber(product.stock ?? product.quantity),
             0
         );
+
+
+const inventoryStockValue = products.reduce((sum, product) => {
+    const stock = Math.max(
+        0,
+        safeNumber(product.stock ?? product.quantity)
+    );
+
+    const unitCost = safeNumber(product.unitCost);
+
+    return sum + (stock * unitCost);
+}, 0);
+
         /* ---------------------------------
            OPERATING EXPENSES & SALARIES
         --------------------------------- */
@@ -133,12 +156,13 @@ export async function initReports({ db, profile }) {
            ESTIMATED NET PROFIT
         --------------------------------- */
 
-        const netProfit =
-            revenue -
-            costOfGoodsSold -
-            operatingExpenses -
-            totalSalary -
-            courierCosts;
+        
+const netProfit =
+    revenue -
+    costOfGoodsSold -
+    operatingExpenses -
+    totalSalary;
+
 
         /* ---------------------------------
            UPDATE REPORT CARDS
@@ -163,6 +187,14 @@ export async function initReports({ db, profile }) {
         $('reportOutstanding').textContent = money(outstanding);
 
         $('reportAvailableUnits').textContent = availableUnits;
+
+
+const stockValueElement = $('reportInventoryValue');
+
+if (stockValueElement) {
+    stockValueElement.textContent = money(inventoryStockValue);
+}
+
 
         $('reportNetProfit').style.color =
             netProfit >= 0 ? '#15803d' : '#dc2626';
@@ -196,11 +228,6 @@ export async function initReports({ db, profile }) {
                 label: 'Total Salary',
                 value: totalSalary,
                 className: 'bar-expenses'
-            },
-            {
-                label: 'Courier Costs',
-                value: courierCosts,
-                className: 'bar-courier'
             },
             {
                 label: 'Estimated Net Profit',
@@ -263,12 +290,6 @@ export async function initReports({ db, profile }) {
                 value: Math.max(0, totalSalary),
                 className: 'legend-expenses',
                 color: '#d97706'
-            },
-            {
-                label: 'Courier Costs',
-                value: Math.max(0, courierCosts),
-                className: 'legend-courier',
-                color: '#4b8ac8'
             },
             {
                 label: 'Net Profit',
