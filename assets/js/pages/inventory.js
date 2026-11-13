@@ -105,7 +105,13 @@ export async function initInventory({
     ===================================== */
 
     
+
 function updateFilterCounts() {
+
+    // Total number of product records
+    // Do not count stock quantities
+    const totalProducts = inventoryProducts.length;
+
     // Total available stock quantity
     const inStockProducts = inventoryProducts.reduce(
         (total, product) =>
@@ -113,14 +119,12 @@ function updateFilterCounts() {
         0
     );
 
-    // Number of products with zero stock
+    // Number of sold-out product records
     const soldOutProducts = inventoryProducts.filter(
         product => Number(product.stock) === 0
     ).length;
 
-    // Available units + sold-out product records
-    const totalProducts = inStockProducts + soldOutProducts;
-
+    // Update inventory summary cards
     const totalCount = $('filterTotalCount');
     const stockCount = $('filterStockCount');
     const soldCount = $('filterSoldCount');
@@ -129,6 +133,7 @@ function updateFilterCounts() {
     if (stockCount) stockCount.textContent = inStockProducts;
     if (soldCount) soldCount.textContent = soldOutProducts;
 }
+
 
 
     /* =====================================
