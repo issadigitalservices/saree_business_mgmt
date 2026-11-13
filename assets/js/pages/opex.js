@@ -199,6 +199,19 @@ export async function initOpex({ db, user, profile }) {
                         `).join('')}
                     </select>
                     <span id="expenseHistoryCount">0 records</span>
+
+
+<button
+    type="button"
+    id="exportOpex"
+    style="background:#117f78;color:#fff;
+           border:none;border-radius:7px;
+           padding:9px 15px;font-size:13px;
+           font-weight:600;cursor:pointer;
+           white-space:nowrap;">
+    ↓ Export CSV
+</button>
+
                 </div>
             </div>
 
@@ -325,6 +338,76 @@ function updateExpenseSummary() {
 
     $('expenseHistoryCount').textContent =
         `${displayedExpenses.length} records`;
+}
+
+
+function exportOpexCSV() {
+
+    // Export only records matching the staff filter.
+    const records = selectedStaffFilter === 'all'
+        ? expenses
+        : expenses.filter(expense =>
+            expense.staffName === selectedStaffFilter ||
+            expense.description ===
+                `Salary of ${selectedStaffFilter}`
+        );
+
+    if (!records.length) {
+        alert('No expense records available to export.');
+        return;
+    }
+
+    const headers = [
+        'Expense Date',
+        'Category',
+        'Staff Name',
+        'Description',
+        'Amount'
+    ];
+
+    const rows = records.map(expense => [
+        expense.date || '',
+        expense.category || '',
+        expense.staffName ||
+            (expense.category === 'Salary'
+                ? String(expense.description || '')
+                    .replace(/^Salary of /, '')
+                : ''),
+        expense.description || '',
+        Number(expense.amount || 0).toFixed(2)
+    ]);
+
+    const csv = [headers, ...rows]
+        .map(row => row.map(value => {
+            let text = String(value ?? '');
+
+            // Prevent spreadsheet formula injection.
+            if (/^\s*[=+\-@\t\r]/.test(text)) {
+                text = "'" + text;
+            }
+
+            return `"${text.replace(/"/g, '""')}"`;
+        }).join(','))
+        .join('\r\n');
+
+    const blob = new Blob(
+        ['\uFEFF' + csv],
+        { type: 'text/csv;charset=utf-8;' }
+    );
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download =
+        `Aarabhi_OPEX_${selectedStaffFilter}_` +
+        `${new Date().toISOString().slice(0, 10)}.csv`;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 
@@ -633,6 +716,9 @@ $('historyStaffFilter').addEventListener('change', (e) => {
         }
 
     });
+
+
+$('exportOpex')?.addEventListener('click', exportOpexCSV);
 
     // INITIAL LOAD
     await loadExpenses();

@@ -138,6 +138,120 @@ $('totalSalesAmount').textContent = money(
         );
     }
 
+
+function exportSalesCSV() {
+    const records = filteredRecords();
+
+    if (!records.length) {
+        alert('No sales records available to export.');
+        return;
+    }
+
+    const headers = [
+        'Receipt Number',
+        'Sale Date',
+        'Customer Name',
+        'Phone Number',
+        'Product Names',
+        'Product Codes',
+        'Total Quantity',
+        'Product Subtotal',
+        'Discount',
+        'Sales Revenue',
+        'Cost of Goods Sold',
+        'Gross Profit',
+        'Courier Pass Through',
+        'Customer Payable',
+        'Amount Received',
+        'Balance Due',
+        'Payment Status',
+        'Order Mode',
+        'Payment Mode',
+        'Delivery Status'
+    ];
+
+    const rows = records.map(sale => {
+        const items = getItems(sale);
+
+        const quantity = items.reduce(
+            (sum, item) => sum + number(item.qty), 0
+        );
+
+        const subtotal = getSubtotal(sale);
+        const discount = number(sale.discount);
+        const courier = number(sale.courier);
+
+        const revenue = subtotal - discount;
+
+        const cogs = sale.costTotal !== undefined
+            ? number(sale.costTotal)
+            : items.reduce(
+                (sum, item) =>
+                    sum + number(item.qty) * number(item.unitCost),
+                0
+            );
+
+        const grossProfit = revenue - cogs;
+
+        const payable = revenue + courier;
+
+        return [
+            sale.invoice || '',
+            formatDate(sale),
+            sale.customer || '',
+            sale.phone || '',
+            items.map(item => item.name).join(' | '),
+            items.map(item => item.code).join(' | '),
+            quantity,
+            subtotal.toFixed(2),
+            discount.toFixed(2),
+            revenue.toFixed(2),
+            cogs.toFixed(2),
+            grossProfit.toFixed(2),
+            courier.toFixed(2),
+            payable.toFixed(2),
+            number(sale.paid).toFixed(2),
+            number(sale.paymentDue).toFixed(2),
+            sale.paymentStatus || '',
+            sale.orderMode || '',
+            sale.paymentMode || '',
+            sale.deliveryStatus || ''
+        ];
+    });
+
+    const csv = [headers, ...rows]
+        .map(row => row.map(value => {
+            let text = String(value ?? '');
+
+            // Protect Excel against CSV formula injection.
+            if (/^\s*[=+\-@\t\r]/.test(text)) {
+                text = "'" + text;
+            }
+
+            return `"${text.replace(/"/g, '""')}"`;
+        }).join(','))
+        .join('\r\n');
+
+    const blob = new Blob(
+        ['\uFEFF' + csv],
+        { type: 'text/csv;charset=utf-8;' }
+    );
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download =
+        `Aarabhi_Sales_${new Date().toISOString().slice(0, 10)}.csv`;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+
     function filteredRecords() {
 
         const term = $('salesSearch').value.trim().toLowerCase();
@@ -889,6 +1003,10 @@ $('editSaleForm').addEventListener('submit', async event => {
     });
 
     $('refreshSales').addEventListener('click', loadSales);
+
+
+$('exportSales')?.addEventListener('click', exportSalesCSV);
+
 
     await loadSales();
 }

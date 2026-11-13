@@ -317,68 +317,75 @@ function updateFilterCounts() {
        EXPORT FILTERED PRODUCTS TO CSV
     ===================================== */
 
-    function exportInventory() {
-        const products = getFilteredProducts();
+    
+function exportInventory() {
+    const products = getFilteredProducts();
 
-        if (!products.length) {
-            alert('No products available to export.');
-            return;
-        }
-
-        const headers = [
-            'Product Code',
-            'Product Name',
-            'Unit Cost',
-            'Selling Price',
-            'Profit Per Unit',
-            'Stock Quantity',
-            'Stock Status'
-        ];
-
-        const rows = products.map(product => {
-            const stock = Number(product.stock) || 0;
-            const unitCost = Number(product.unitCost) || 0;
-            const sellingPrice = Number(product.price) || 0;
-
-            return [
-                product.code || '',
-                product.name || '',
-                unitCost.toFixed(2),
-                sellingPrice.toFixed(2),
-                (sellingPrice - unitCost).toFixed(2),
-                stock,
-                stock > 0 ? 'In Stock' : 'Sold Out'
-            ];
-        });
-
-        const csvContent = [
-            headers,
-            ...rows
-        ].map(row =>
-            row.map(value =>
-                `"${String(value).replace(/"/g, '""')}"`
-            ).join(',')
-        ).join('\r\n');
-
-        const blob = new Blob(
-            ['\uFEFF' + csvContent],
-            { type: 'text/csv;charset=utf-8;' }
-        );
-
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-
-        link.href = url;
-
-        const date = new Date().toISOString().slice(0, 10);
-        link.download = `SareeDesk_Inventory_${date}.csv`;
-
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        URL.revokeObjectURL(url);
+    if (!products.length) {
+        alert('No products available to export.');
+        return;
     }
+
+    const headers = [
+        'Product Code',
+        'Product Name',
+        'Product Date',
+        'Unit Cost',
+        'Selling Price',
+        'Profit Per Unit',
+        'Stock Quantity',
+        'Stock Value',
+        'Potential Sales Value',
+        'Stock Status'
+    ];
+
+    const rows = products.map(product => {
+        const stock = Number(product.stock) || 0;
+        const unitCost = Number(product.unitCost) || 0;
+        const sellingPrice = Number(product.price) || 0;
+
+        return [
+            product.code || '',
+            product.name || '',
+            formatProductDate(product),
+            unitCost.toFixed(2),
+            sellingPrice.toFixed(2),
+            (sellingPrice - unitCost).toFixed(2),
+            stock,
+            (stock * unitCost).toFixed(2),
+            (stock * sellingPrice).toFixed(2),
+            stock > 0 ? 'In Stock' : 'Sold Out'
+        ];
+    });
+
+    const csvContent = [headers, ...rows]
+        .map(row => row.map(value =>
+            `"${String(value ?? '')
+                .replace(/^[\s]*([=+\-@\t\r])/,
+                    "'$1")
+                .replace(/"/g, '""')}"`
+        ).join(','))
+        .join('\r\n');
+
+    const blob = new Blob(
+        ['\uFEFF' + csvContent],
+        { type: 'text/csv;charset=utf-8;' }
+    );
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download =
+        `Aarabhi_Inventory_${new Date().toISOString().slice(0, 10)}.csv`;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 
     exportButton?.addEventListener('click', exportInventory);
 
