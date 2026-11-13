@@ -111,6 +111,10 @@ const revenue = sales.reduce((sum, sale) => {
             0
         );
 
+
+const grossProfit = revenue - costOfGoodsSold;
+
+
         const outstanding = sales.reduce(
             (sum, sale) => sum + Math.max(0, safeNumber(sale.paymentDue)),
             0
@@ -174,6 +178,17 @@ const netProfit =
 
         $('reportCOGS').textContent = money(costOfGoodsSold);
 
+
+const grossProfitElement = $('reportGrossProfit');
+
+if (grossProfitElement) {
+    grossProfitElement.textContent = money(grossProfit);
+
+    grossProfitElement.style.color =
+        grossProfit >= 0 ? '#15803d' : '#dc2626';
+}
+
+
         if ($('reportDiscount')) $('reportDiscount').textContent = money(totalDiscount);
 
         $('reportOPEX').textContent = money(operatingExpenses);
@@ -214,6 +229,14 @@ if (stockValueElement) {
                 value: costOfGoodsSold,
                 className: 'bar-cost'
             },
+
+
+{
+    label: 'Gross Profit',
+    value: grossProfit,
+    className: 'bar-profit'
+},
+
             {
                 label: 'Total Discount',
                 value: totalDiscount,

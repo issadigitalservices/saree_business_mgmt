@@ -119,13 +119,18 @@ export async function initSales({ db, user, go }) {
         );
     }
 
-    function getTotals() {
-
+    
+function getTotals() {
     const subtotal = getSubtotal();
     const courier = number($('saleCourier').value);
     const discount = number($('saleDiscount').value);
 
-    const total = subtotal + courier - discount;
+    // Business revenue excludes courier
+    const salesRevenue = subtotal - discount;
+
+    // Customer payable includes courier
+    const total = salesRevenue + courier;
+
     const paid = number($('salePaid').value);
     const due = Math.max(0, total - paid);
 
@@ -133,11 +138,13 @@ export async function initSales({ db, user, go }) {
         subtotal,
         courier,
         discount,
+        salesRevenue,
         total,
         paid,
         due
     };
 }
+
 
     function updatePaymentStatus() {
 
@@ -317,9 +324,11 @@ $('salePaid').addEventListener('input', updateTotals);
     throw new Error('Courier, discount and received amounts cannot be negative.');
 }
 
-if (values.discount > values.subtotal + values.courier) {
-    throw new Error('Discount cannot exceed the receipt amount.');
+
+if (values.discount > values.subtotal) {
+    throw new Error('Discount cannot exceed product subtotal.');
 }
+
 
 if (values.paid > values.total) {
     throw new Error('Amount received cannot exceed receipt total.');
@@ -330,10 +339,13 @@ if (values.paid > values.total) {
             customer,
             phone: $('salePhone').value.trim(),
             items: cart.map(item => ({ ...item })),
-            subtotal: values.subtotal,
-            courier: values.courier,
-            discount: values.discount,
-            total: values.total,
+            
+subtotal: values.subtotal,
+courier: values.courier,
+discount: values.discount,
+salesRevenue: values.salesRevenue,
+total: values.total,
+
             paid: values.paid,
             paymentDue: values.due,
             costTotal: cart.reduce(
@@ -530,10 +542,13 @@ if (values.paid > values.total) {
                     customer: data.customer,
                     phone: data.phone,
                     items: data.items,
-                    subtotal: data.subtotal,
-                    total: data.total,
-                    courier: data.courier,
-                    discount: data.discount,
+                    
+subtotal: data.subtotal,
+salesRevenue: data.salesRevenue,
+total: data.total,
+courier: data.courier,
+discount: data.discount,
+
                     costTotal: data.costTotal,
                     paid: data.paid,
                     paymentDue: data.paymentDue,

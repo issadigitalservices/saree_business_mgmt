@@ -89,6 +89,22 @@
 
                 <div class="edit-sale-grid">
 
+
+<label>
+    Receipt Date
+    <input id="editSaleDate" type="date" required>
+</label>
+
+<label>
+    Discount (₹)
+    <input id="editDiscount"
+           type="number"
+           min="0"
+           step="0.01"
+           value="0">
+</label>
+
+
                     <label>
                         Customer Name
                         <input id="editCustomer" type="text" required>
@@ -145,12 +161,86 @@
 
                 </div>
 
-                <div id="editReceiptProducts"></div>
+                
+<div class="edit-products-section">
+    <h4>Products in This Receipt</h4>
 
-                <div class="edit-sale-total">
-                    <div><span>Receipt Total</span><strong id="editTotal">₹0.00</strong></div>
-                    <div><span>Balance Due</span><strong id="editDue">₹0.00</strong></div>
-                </div>
+    <div id="editReceiptProducts"></div>
+
+    <h4>Add Another Product</h4>
+
+    <div class="edit-sale-grid">
+        <label>
+            Select Product
+            <select id="editAddProduct">
+                <option value="">Select a product</option>
+            </select>
+        </label>
+
+        <label>
+            Quantity
+            <input id="editAddQuantity"
+                   type="number"
+                   min="1"
+                   step="1"
+                   value="1">
+        </label>
+
+        <label>
+            Selling Price / Unit (₹)
+            <input id="editAddPrice"
+                   type="number"
+                   min="0"
+                   step="0.01">
+        </label>
+    </div>
+
+    <button type="button"
+            id="editAddProductBtn"
+            class="primary">
+        + Add Product
+    </button>
+</div>
+
+
+                
+<div class="edit-sale-total">
+    <div>
+        <span>Product Subtotal</span>
+        <strong id="editSubtotal">₹0.00</strong>
+    </div>
+
+    <div>
+        <span>Discount</span>
+        <strong id="editDiscountTotal">₹0.00</strong>
+    </div>
+
+    <div>
+        <span>Sales Revenue</span>
+        <strong id="editSalesRevenue">₹0.00</strong>
+    </div>
+
+    <div>
+        <span>Courier (Pass-through)</span>
+        <strong id="editCourierTotal">₹0.00</strong>
+    </div>
+
+    <div>
+        <span>Customer Payable</span>
+        <strong id="editTotal">₹0.00</strong>
+    </div>
+
+    <div>
+        <span>Amount Received</span>
+        <strong id="editReceivedTotal">₹0.00</strong>
+    </div>
+
+    <div>
+        <span>Balance Due</span>
+        <strong id="editDue">₹0.00</strong>
+    </div>
+</div>
+
 
                 <div class="modal-actions">
                     <button type="button" id="cancelSaleEdit" class="secondary">Cancel</button>
