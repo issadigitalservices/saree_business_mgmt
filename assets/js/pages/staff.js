@@ -2,14 +2,17 @@
    SAREEDESK - STAFF MANAGEMENT
 ===================================== */
 
+
 import {
     collection,
     doc,
     getDocs,
     getDoc,
     setDoc,
+    updateDoc,
     serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+
 
 const $ = id => document.getElementById(id);
 
@@ -126,6 +129,33 @@ export async function initStaff({ db, user, profile }) {
 
                         <td>${formatDate(item.createdAt)}</td>
 
+
+<td>
+    ${active ? `
+        <button type="button"
+                class="staff-action-btn"
+                data-staff-action="deactivate"
+                data-staff-id="${escapeHTML(item.id)}">
+            Deactivate
+        </button>
+    ` : `
+        <button type="button"
+                class="staff-action-btn"
+                data-staff-action="approve"
+                data-staff-id="${escapeHTML(item.id)}">
+            Approve
+        </button>
+
+        <button type="button"
+                class="staff-action-btn"
+                data-staff-action="reject"
+                data-staff-id="${escapeHTML(item.id)}">
+            Reject
+        </button>
+    `}
+</td>
+
+
                     </tr>
                 `;
 
@@ -224,12 +254,11 @@ export async function initStaff({ db, user, profile }) {
 
             showMessage('Staff account activated successfully.', 'success');
 
+            
             form.reset();
-
             await loadStaff();
 
         } catch (error) {
-
             console.error('Staff activation error:', error);
 
             showMessage(
@@ -238,14 +267,99 @@ export async function initStaff({ db, user, profile }) {
             );
 
         } finally {
-
             button.disabled = false;
             button.textContent = 'Activate Staff';
-
         }
-
     });
 
-    await loadStaff();
+    /* =====================================
+       STAFF APPROVAL / REJECTION
+    ===================================== */
 
+    $('staffTableBody').addEventListener('click', async event => {
+
+        const button = event.target.closest('[data-staff-action]');
+        if (!button) return;
+
+        const action = button.dataset.staffAction;
+        const uid = button.dataset.staffId;
+
+        if (!uid || uid === user.uid) {
+            showMessage('Invalid staff account.', 'error');
+            return;
+        }
+
+        if (!['approve', 'reject', 'deactivate'].includes(action)) {
+            return;
+        }
+
+        if (!confirm(
+            `Are you sure you want to ${action} this staff account?`
+        )) {
+            return;
+        }
+
+        button.disabled = true;
+
+        try {
+            const staffRef = doc(db, 'users', uid);
+            const snapshot = await getDoc(staffRef);
+
+            if (!snapshot.exists()) {
+                throw new Error('Staff account not found.');
+            }
+
+            const staff = snapshot.data();
+
+            if (staff.role !== 'staff') {
+                throw new Error('Only staff accounts can be modified.');
+            }
+
+            const changes = {
+                updatedAt: serverTimestamp(),
+                updatedBy: user.uid
+            };
+
+            if (action === 'approve') {
+                changes.active = true;
+                changes.rejected = false;
+                changes.approvedAt = serverTimestamp();
+                changes.approvedBy = user.uid;
+            }
+
+            if (action === 'deactivate') {
+                changes.active = false;
+            }
+
+            if (action === 'reject') {
+                changes.active = false;
+                changes.rejected = true;
+                changes.rejectedAt = serverTimestamp();
+                changes.rejectedBy = user.uid;
+            }
+
+            await updateDoc(staffRef, changes);
+
+            showMessage(
+                `Staff account ${action} completed successfully.`,
+                'success'
+            );
+
+            await loadStaff();
+
+        } catch (error) {
+            console.error('Staff action error:', error);
+
+            showMessage(
+                error.message || 'Unable to update staff account.',
+                'error'
+            );
+
+        } finally {
+            button.disabled = false;
+        }
+    });
+
+    // Initial staff load
+    await loadStaff();
 }

@@ -55,15 +55,101 @@
                 <input id="password" type="password" required>
             </label>
 
-            <button class="primary" type="submit">
-                Sign in
-            </button>
+            
+<button class="primary" type="submit">
+    Sign in
+</button>
 
-            <p id="loginMsg" class="error"></p>
+<p id="loginMsg" class="error"></p>
+
+<p style="text-align:center;margin-top:15px;">
+    Don't have an account?
+    <button type="button"
+            id="showRegister"
+            style="background:none;border:none;color:#117f78;
+                   font-weight:700;cursor:pointer;">
+        Create New Account
+    </button>
+</p>
+
 
         </form>
 
     </div>
+
+
+<!-- NEW USER REGISTRATION -->
+
+<div id="register" class="login hidden">
+
+    <form id="registerForm" class="login-card">
+
+        <img src="assets/images/logo.png"
+             alt="Aarabhi Online Threads"
+             class="brand-logo login-logo">
+
+        <h1>Create New Account</h1>
+        <p>Aarabhi Online Threads</p>
+
+        <label>
+            Full Name
+            <input id="registerName"
+                   type="text"
+                   autocomplete="name"
+                   required>
+        </label>
+
+        <label>
+            Email Address
+            <input id="registerEmail"
+                   type="email"
+                   autocomplete="email"
+                   required>
+        </label>
+
+        <label>
+            Password
+            <input id="registerPassword"
+                   type="password"
+                   minlength="8"
+                   autocomplete="new-password"
+                   required>
+        </label>
+
+        <label>
+            Confirm Password
+            <input id="registerConfirmPassword"
+                   type="password"
+                   minlength="8"
+                   autocomplete="new-password"
+                   required>
+        </label>
+
+        <button type="submit"
+                id="registerSubmit"
+                class="primary">
+            Create Account
+        </button>
+
+        <p id="registerMsg"
+           aria-live="polite"
+           style="text-align:center;"></p>
+
+        <p style="text-align:center;margin-top:15px;">
+            Already have an account?
+            <button type="button"
+                    id="backToLogin"
+                    style="background:none;border:none;
+                           color:#117f78;font-weight:700;
+                           cursor:pointer;">
+                Sign in
+            </button>
+        </p>
+
+    </form>
+
+</div>
+
 
     <!-- APPLICATION -->
 

@@ -2,18 +2,39 @@
    SAREEDESK - CORE APPLICATION
 ===================================== */
 
+
 import {
     onAuthStateChanged,
     signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
     signOut,
     setPersistence,
-    browserLocalPersistence
+    browserLocalPersistence,
+    inMemoryPersistence
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 
 import {
-    doc,
-    getDoc
+    initializeApp,
+    deleteApp
+} from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+
+import {
+    getAuth
+} from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+
+
+import {
+    getFirestore
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+
+
+import {
+    doc,
+    getDoc,
+    setDoc,
+    serverTimestamp
+} from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+
 
 import { auth, db, storage } from '../firebase.js';
 
@@ -141,6 +162,143 @@ function toast(message, type = '') {
 /* =====================================
    AUTHENTICATION
 ===================================== */
+
+
+function showRegisterScreen() {
+    $('login').classList.add('hidden');
+    $('register').classList.remove('hidden');
+    $('app').classList.add('hidden');
+    $('registerMsg').textContent = '';
+}
+
+function showLoginScreen() {
+    $('register').classList.add('hidden');
+    $('login').classList.remove('hidden');
+    $('app').classList.add('hidden');
+}
+
+async function registerUser(event) {
+    event.preventDefault();
+
+    const name = $('registerName').value.trim();
+    const email = $('registerEmail').value.trim();
+    const password = $('registerPassword').value;
+    const confirmPassword = $('registerConfirmPassword').value;
+
+    const msg = $('registerMsg');
+    const button = $('registerSubmit');
+
+    msg.textContent = '';
+    msg.style.color = '#dc2626';
+
+    if (!name || !email) {
+        msg.textContent = 'Enter your full name and email.';
+        return;
+    }
+
+    if (password.length < 8) {
+        msg.textContent = 'Password must contain at least 8 characters.';
+        return;
+    }
+
+    if (password !== confirmPassword) {
+        msg.textContent = 'Passwords do not match.';
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = 'Creating Account...';
+
+    let secondaryApp = null;
+    let secondaryAuth = null;
+    let accountCreated = false;
+
+    try {
+        // Separate Firebase Auth instance prevents a new registration
+        // from replacing the currently signed-in admin session.
+        secondaryApp = initializeApp(
+            auth.app.options,
+            `registration-${Date.now()}`
+        );
+
+        secondaryAuth = getAuth(secondaryApp);
+
+        await setPersistence(
+            secondaryAuth,
+            inMemoryPersistence
+        );
+
+        const credential = await createUserWithEmailAndPassword(
+            secondaryAuth,
+            email,
+            password
+        );
+
+        accountCreated = true;
+
+        const uid = credential.user.uid;
+
+        // New accounts cannot choose their own role or activation.
+        
+const registrationDb = getFirestore(secondaryApp);
+
+await setDoc(doc(registrationDb, 'users', uid), {
+
+            uid,
+            name,
+            email: credential.user.email,
+            role: 'staff',
+            active: false,
+            createdAt: serverTimestamp()
+        });
+
+        $('registerForm').reset();
+
+        msg.style.color = '#15803d';
+        msg.textContent =
+            'Account created successfully. ' +
+            'Please wait for administrator approval.';
+
+    } catch (error) {
+        console.error('Registration error:', error);
+
+        if (accountCreated) {
+            msg.textContent =
+                'Authentication account created, but profile setup failed. ' +
+                'Contact the administrator before trying again.';
+        } else if (error.code === 'auth/email-already-in-use') {
+            msg.textContent = 'This email is already registered.';
+        } else if (error.code === 'auth/invalid-email') {
+            msg.textContent = 'Enter a valid email address.';
+        } else if (error.code === 'auth/weak-password') {
+            msg.textContent = 'Choose a stronger password.';
+        } else {
+            msg.textContent =
+                'Registration failed. Please contact the administrator.';
+        }
+
+    } finally {
+        if (secondaryAuth) {
+            try {
+                await signOut(secondaryAuth);
+            } catch (error) {
+                console.warn('Registration sign-out:', error);
+            }
+        }
+
+        if (secondaryApp) {
+            try {
+                await deleteApp(secondaryApp);
+            } catch (error) {
+                console.warn('Registration cleanup:', error);
+            }
+        }
+
+        button.disabled = false;
+        button.textContent = 'Create Account';
+    }
+}
+
 
 async function login(event) {
 
@@ -455,6 +613,23 @@ $('homeBottom').addEventListener('click', () => {
 
 $('loginForm').addEventListener('submit', login);
 
+
+$('showRegister').addEventListener(
+    'click',
+    showRegisterScreen
+);
+
+$('backToLogin').addEventListener(
+    'click',
+    showLoginScreen
+);
+
+$('registerForm').addEventListener(
+    'submit',
+    registerUser
+);
+
+
 $('logout').addEventListener('click', logout);
 
 
@@ -533,23 +708,34 @@ async function initializeAuthentication() {
                     await go('home');
                 }
 
+            
+
             } catch (error) {
                 console.error('ACCOUNT PROFILE ERROR:', error);
 
-                $('login').classList.add('hidden');
-                $('app').classList.add('hidden');
+                currentUser = null;
+                currentProfile = null;
+                currentPage = null;
 
-                $('screen').innerHTML = `
-                    <div class="intro">
-                        <h3>Account verification failed</h3>
-                        <p>${error.message}</p>
-                    </div>
-                `;
+                try {
+                    await signOut(auth);
+                } catch (signOutError) {
+                    console.error('Sign-out error:', signOutError);
+                }
+
+                $('app').classList.add('hidden');
+                $('register').classList.add('hidden');
+                $('login').classList.remove('hidden');
+
+                $('loginMsg').textContent =
+                    error.message || 'Account verification failed.';
             }
         });
 
     } catch (error) {
         console.error('AUTH INITIALIZATION ERROR:', error);
+
+        $('register').classList.add('hidden');
         $('login').classList.remove('hidden');
         $('app').classList.add('hidden');
     }
