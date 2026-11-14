@@ -103,6 +103,112 @@ export async function initViewSales({ db, user, profile }) {
 
     const isAdmin = profile?.role === 'admin';
 
+
+/* =====================================
+   VIEW SALES PAGINATION
+===================================== */
+
+let salesCurrentPage = 1;
+let salesRowsPerPage = 10;
+
+const salesPagination = document.createElement('div');
+salesPagination.className = 'record-pagination';
+
+salesPagination.innerHTML = `
+    <div class="pagination-info">
+        <span id="salesPageInfo"></span>
+    </div>
+
+    <div class="pagination-controls">
+        <label>
+            Rows:
+            <select id="salesPageSize">
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+        </label>
+
+        <button type="button" id="salesPrevPage">
+            ‹ Previous
+        </button>
+
+        <span id="salesPageNumber"></span>
+
+        <button type="button" id="salesNextPage">
+            Next ›
+        </button>
+    </div>
+`;
+
+const salesTable = body.closest('table');
+
+if (salesTable) {
+    salesTable.insertAdjacentElement(
+        'afterend',
+        salesPagination
+    );
+}
+
+function updateSalesPagination(totalRecords) {
+    const totalPages = Math.max(
+        1,
+        Math.ceil(totalRecords / salesRowsPerPage)
+    );
+
+    salesCurrentPage = Math.min(
+        Math.max(1, salesCurrentPage),
+        totalPages
+    );
+
+    const start = totalRecords
+        ? (salesCurrentPage - 1) * salesRowsPerPage + 1
+        : 0;
+
+    const end = Math.min(
+        salesCurrentPage * salesRowsPerPage,
+        totalRecords
+    );
+
+    $('salesPageInfo').textContent =
+        `Showing ${start}–${end} of ${totalRecords} receipts`;
+
+    $('salesPageNumber').textContent =
+        `Page ${salesCurrentPage} of ${totalPages}`;
+
+    $('salesPrevPage').disabled =
+        salesCurrentPage === 1;
+
+    $('salesNextPage').disabled =
+        salesCurrentPage >= totalPages;
+}
+
+$('salesPrevPage').addEventListener('click', () => {
+    if (salesCurrentPage > 1) {
+        salesCurrentPage--;
+        renderSales();
+    }
+});
+
+$('salesNextPage').addEventListener('click', () => {
+    const totalPages = Math.ceil(
+        filteredRecords().length / salesRowsPerPage
+    );
+
+    if (salesCurrentPage < totalPages) {
+        salesCurrentPage++;
+        renderSales();
+    }
+});
+
+$('salesPageSize').addEventListener('change', event => {
+    salesRowsPerPage = Number(event.target.value) || 10;
+    salesCurrentPage = 1;
+    renderSales();
+});
+
+
     function message(text, type = '') {
         $('viewSalesMessage').textContent = text;
         $('viewSalesMessage').className = `view-sales-message ${type}`;
@@ -279,9 +385,20 @@ function exportSalesCSV() {
 
     function renderSales() {
 
-        const records = filteredRecords();
+    const allRecords = filteredRecords();
 
-        $('salesCount').textContent = `${records.length} receipts`;
+    updateSalesPagination(allRecords.length);
+
+    const startIndex =
+        (salesCurrentPage - 1) * salesRowsPerPage;
+
+    const records = allRecords.slice(
+        startIndex,
+        startIndex + salesRowsPerPage
+    );
+
+        $('salesCount').textContent =
+    `${allRecords.length} receipts`;
 
         if (!records.length) {
             body.innerHTML = `
@@ -366,8 +483,9 @@ function exportSalesCSV() {
             });
 
             updateSummary();
-            renderSales();
-            message('');
+salesCurrentPage = 1;
+renderSales();
+message('');
 
         } catch (error) {
 
@@ -986,7 +1104,10 @@ $('editSaleForm').addEventListener('submit', async event => {
         if (del) deleteReceipt(del.dataset.delete);
     });
 
-    $('salesSearch').addEventListener('input', renderSales);
+    $('salesSearch').addEventListener('input', () => {
+    salesCurrentPage = 1;
+    renderSales();
+});
 
     $('salesFilters').addEventListener('click', event => {
 
@@ -994,6 +1115,8 @@ $('editSaleForm').addEventListener('submit', async event => {
         if (!button) return;
 
         activeFilter = button.dataset.filter;
+
+        salesCurrentPage = 1;
 
         $('salesFilters').querySelectorAll('[data-filter]').forEach(item => {
             item.classList.toggle('active', item === button);

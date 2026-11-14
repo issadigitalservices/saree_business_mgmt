@@ -4,12 +4,13 @@
    HISTORICAL DATA IMPORT
    Firebase Firestore 10.12.5
 ========================================== */
-
 import {
     collection,
     doc,
     getDocs,
     getDoc,
+    query,
+    where,
     writeBatch,
     runTransaction,
     serverTimestamp
@@ -1062,6 +1063,201 @@ export async function initImportData({ db, user, profile }) {
             $('importSalesBtn').disabled = true;
         }
     };
+
+
+/* ==========================================
+   DELETE HISTORICAL IMPORTS
+========================================== */
+
+async function deleteHistoricalRecords(type) {
+
+    if (busy) {
+        alert('Another import operation is running.');
+        return;
+    }
+
+    if (profile?.role !== 'admin' || !user?.uid) {
+        alert('Administrator access required.');
+        return;
+    }
+
+    const isInventory = type === 'inventory';
+
+    const collectionName = isInventory
+        ? 'products'
+        : 'sales';
+
+    const expectedSource = isInventory
+        ? 'historical-inventory-csv'
+        : 'historical-sales-csv';
+
+    const messageId = isInventory
+        ? 'deleteInventoryMessage'
+        : 'deleteSalesMessage';
+
+    const buttonId = isInventory
+        ? 'deleteHistoricalInventoryBtn'
+        : 'deleteHistoricalSalesBtn';
+
+    const button = $(buttonId);
+
+    busy = true;
+    button.disabled = true;
+
+    try {
+
+        showMessage(
+            messageId,
+            'Checking previously imported records...'
+        );
+
+        // Select historical imports only.
+        const importedQuery = query(
+            collection(db, collectionName),
+            where('legacy.imported', '==', true),
+            where('legacy.source', '==', expectedSource)
+        );
+
+        const snapshot = await getDocs(importedQuery);
+
+        // Recheck metadata before deleting.
+        const records = snapshot.docs.filter(record => {
+            const legacy = record.data().legacy;
+
+            return (
+                legacy?.imported === true &&
+                legacy?.source === expectedSource &&
+                legacy?.stockAlreadyAdjusted === true
+            );
+        });
+
+        if (records.length === 0) {
+
+            showMessage(
+                messageId,
+                'No matching historical imported records found.',
+                'warning'
+            );
+
+            return;
+        }
+
+        const label = isInventory
+            ? 'Historical Inventory'
+            : 'Historical Sales';
+
+        const approved = confirm(
+            `DELETE ${label.toUpperCase()}\n\n` +
+            `Matching imported records: ${records.length}\n\n` +
+            `Normal website records will not be selected.\n` +
+            `This operation cannot be undone.\n\n` +
+            `Continue to final confirmation?`
+        );
+
+        if (!approved) return;
+
+        const typed = prompt(
+            `You are about to delete ${records.length} ` +
+            `${label} records.\n\n` +
+            `Type DELETE to confirm:`
+        );
+
+        if (typed !== 'DELETE') {
+
+            showMessage(
+                messageId,
+                'Deletion cancelled. No records deleted.',
+                'warning'
+            );
+
+            return;
+        }
+
+        let deleted = 0;
+
+        // Delete in small batches to avoid exceeding
+        // Firestore write limits.
+        for (let i = 0; i < records.length; i += 200) {
+
+            const chunk = records.slice(i, i + 200);
+
+            const batch = writeBatch(db);
+
+            chunk.forEach(record => {
+                batch.delete(record.ref);
+            });
+
+            await batch.commit();
+
+            deleted += chunk.length;
+
+            showMessage(
+                messageId,
+                `Deleting records: ${deleted} / ${records.length}`
+            );
+        }
+
+        showMessage(
+            messageId,
+            `${deleted} ${label} records deleted successfully. ` +
+            `You can now validate and import your new CSV.`,
+            'success'
+        );
+
+        // Clear the old validation preview so the user
+        // must validate the replacement CSV.
+        invalidate(type);
+
+        if (isInventory) {
+
+            state.inventoryFile = null;
+            $('inventoryImportFile').value = '';
+
+        } else {
+
+            state.salesFile = null;
+            $('salesImportFile').value = '';
+        }
+
+        // Product counter is deliberately not reset.
+        // Resetting could reuse an existing PR code.
+        // Historical sales deletion does not restore stock.
+
+    } catch (error) {
+
+        console.error(
+            'Historical deletion failed:',
+            error
+        );
+
+        showMessage(
+            messageId,
+            `Deletion failed or was interrupted: ` +
+            `${error.message}. ` +
+            `Some batches may already have been deleted. ` +
+            `Check Firestore before retrying.`,
+            'error'
+        );
+
+    } finally {
+
+        busy = false;
+        button.disabled = false;
+    }
+}
+
+/* ==========================================
+   DELETE BUTTON EVENTS
+========================================== */
+
+$('deleteHistoricalInventoryBtn').onclick = () => {
+    deleteHistoricalRecords('inventory');
+};
+
+$('deleteHistoricalSalesBtn').onclick = () => {
+    deleteHistoricalRecords('sales');
+};
+
 
     updateCounts();
 }

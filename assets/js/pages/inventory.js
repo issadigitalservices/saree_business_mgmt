@@ -94,6 +94,112 @@ export async function initInventory({
     const isAdmin = profile?.role === 'admin';
 
     let activeFilter = 'all';
+let currentPage = 1;
+let rowsPerPage = 10;
+let inventoryPagination = null;
+
+
+/* =====================================
+   INVENTORY PAGINATION CONTROLS
+===================================== */
+
+const inventoryTable = tableBody.closest('table');
+
+if (inventoryTable) {
+    inventoryPagination = document.createElement('div');
+    inventoryPagination.className = 'record-pagination';
+
+    inventoryPagination.innerHTML = `
+        <div class="pagination-info">
+            <span id="inventoryPageInfo"></span>
+        </div>
+
+        <div class="pagination-controls">
+            <label>
+                Rows:
+                <select id="inventoryPageSize">
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </label>
+
+            <button type="button"
+                id="inventoryPrevPage">‹ Previous</button>
+
+            <span id="inventoryPageNumber"></span>
+
+            <button type="button"
+                id="inventoryNextPage">Next ›</button>
+        </div>
+    `;
+
+    inventoryTable.insertAdjacentElement(
+        'afterend',
+        inventoryPagination
+    );
+}
+
+function updateInventoryPagination(totalRecords) {
+    if (!inventoryPagination) return;
+
+    const totalPages = Math.max(
+        1,
+        Math.ceil(totalRecords / rowsPerPage)
+    );
+
+    currentPage = Math.min(
+        Math.max(1, currentPage),
+        totalPages
+    );
+
+    const start = totalRecords
+        ? (currentPage - 1) * rowsPerPage + 1
+        : 0;
+
+    const end = Math.min(
+        currentPage * rowsPerPage,
+        totalRecords
+    );
+
+    $('inventoryPageInfo').textContent =
+        `Showing ${start}–${end} of ${totalRecords} products`;
+
+    $('inventoryPageNumber').textContent =
+        `Page ${currentPage} of ${totalPages}`;
+
+    $('inventoryPrevPage').disabled =
+        currentPage <= 1;
+
+    $('inventoryNextPage').disabled =
+        currentPage >= totalPages;
+}
+
+$('inventoryPrevPage')?.addEventListener('click', () => {
+    if (currentPage > 1) {
+        currentPage--;
+        applyFilters();
+    }
+});
+
+$('inventoryNextPage')?.addEventListener('click', () => {
+    const totalPages = Math.ceil(
+        getFilteredProducts().length / rowsPerPage
+    );
+
+    if (currentPage < totalPages) {
+        currentPage++;
+        applyFilters();
+    }
+});
+
+$('inventoryPageSize')?.addEventListener('change', event => {
+    rowsPerPage = Number(event.target.value) || 10;
+    currentPage = 1;
+    applyFilters();
+});
+
 
     /* =====================================
        SAFE MESSAGE DISPLAY
@@ -187,8 +293,19 @@ if (activeFilter === 'sold') {
 
     function renderInventory(products) {
 
+        const totalRecords = products.length;
+
+updateInventoryPagination(totalRecords);
+
+const startIndex = (currentPage - 1) * rowsPerPage;
+
+products = products.slice(
+    startIndex,
+    startIndex + rowsPerPage
+);
+
     $('inventoryCount').textContent =
-        `${products.length} product${products.length === 1 ? '' : 's'}`;
+    `${totalRecords} product${totalRecords === 1 ? '' : 's'}`;
 
     if (!products.length) {
         tableBody.innerHTML = `
@@ -316,7 +433,8 @@ if (activeFilter === 'sold') {
                 );
             });
 
-            applyFilters();
+            currentPage = 1;
+applyFilters();
         });
     });
 
@@ -324,7 +442,10 @@ if (activeFilter === 'sold') {
        SEARCH EVENT
     ===================================== */
 
-    searchInput?.addEventListener('input', applyFilters);
+    searchInput?.addEventListener('input', () => {
+    currentPage = 1;
+    applyFilters();
+});
 
     /* =====================================
        EXPORT FILTERED PRODUCTS TO CSV

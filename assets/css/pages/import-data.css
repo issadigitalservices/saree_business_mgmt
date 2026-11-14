@@ -417,3 +417,73 @@
         width: 100%;
     }
 }
+
+
+/* =====================================
+   MANAGE HISTORICAL IMPORTS
+===================================== */
+
+.import-delete-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.import-delete-card {
+    background: #fff;
+    border: 1px solid #fecaca;
+    border-radius: 14px;
+    padding: 22px;
+}
+
+.import-delete-card h4 {
+    margin: 0 0 10px;
+    font-size: 17px;
+    color: #991b1b;
+}
+
+.import-delete-card p {
+    margin: 0 0 20px;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.import-delete-button {
+    width: 100%;
+    padding: 13px 18px;
+    border: 1px solid #dc2626;
+    border-radius: 10px;
+    background: #fff;
+    color: #b91c1c;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.import-delete-button:hover:not(:disabled) {
+    background: #dc2626;
+    color: #fff;
+}
+
+.import-delete-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.import-delete-warning {
+    margin: 18px 0 0;
+    padding: 13px 16px;
+    border-radius: 10px;
+    background: #fef2f2;
+    color: #991b1b;
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+@media (max-width: 650px) {
+    .import-delete-grid {
+        grid-template-columns: 1fr;
+    }
+}

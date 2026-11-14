@@ -320,6 +320,99 @@
 
         </div>
 
+
+
     </section>
+
+
+
+<!-- =====================================
+     MANAGE HISTORICAL IMPORTS
+===================================== -->
+
+<section class="import-section">
+
+    <div class="import-section-heading">
+        <div>
+            <h3>3. Manage Historical Imports</h3>
+            <p>
+                Delete previously imported historical records
+                before uploading corrected CSV files.
+                Normal website transactions are protected.
+            </p>
+        </div>
+
+        <span class="import-step-label">
+            Admin Only
+        </span>
+    </div>
+
+    <div class="import-delete-grid">
+
+        <!-- DELETE INVENTORY -->
+
+        <div class="import-delete-card">
+
+            <h4>Historical Inventory</h4>
+
+            <p>
+                Delete only products previously imported
+                from the historical Inventory CSV.
+            </p>
+
+            <button
+                type="button"
+                id="deleteHistoricalInventoryBtn"
+                class="import-delete-button"
+            >
+                Delete Historical Inventory
+            </button>
+
+            <div
+                id="deleteInventoryMessage"
+                class="import-message"
+                aria-live="polite"
+            ></div>
+
+        </div>
+
+        <!-- DELETE SALES -->
+
+        <div class="import-delete-card">
+
+            <h4>Historical Sales</h4>
+
+            <p>
+                Delete only receipts previously imported
+                from the historical Sales CSV.
+                No inventory stock will be restored.
+            </p>
+
+            <button
+                type="button"
+                id="deleteHistoricalSalesBtn"
+                class="import-delete-button"
+            >
+                Delete Historical Sales
+            </button>
+
+            <div
+                id="deleteSalesMessage"
+                class="import-message"
+                aria-live="polite"
+            ></div>
+
+        </div>
+
+    </div>
+
+    <p class="import-delete-warning">
+        Warning: Deleted Firestore records cannot be recovered
+        unless you have a backup. Export or back up your data
+        before deleting.
+    </p>
+
+</section>
+
 
 </div>
