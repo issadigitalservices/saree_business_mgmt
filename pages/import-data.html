@@ -1,0 +1,325 @@
+
+<!-- ==========================================
+     AARABHI ONLINE THREADS
+     HISTORICAL DATA IMPORT
+     Admin Only
+========================================== -->
+
+<div class="import-page">
+
+    <div class="import-page-header">
+        <div>
+            <h2>Historical Data Import</h2>
+            <p>
+                Import previous inventory and sales records
+                into Aarabhi Online Threads securely.
+            </p>
+        </div>
+
+        <span class="import-admin-label">
+            Admin Only
+        </span>
+    </div>
+
+    <!-- IMPORT SUMMARY -->
+
+    <div class="import-summary-grid">
+
+        <div class="import-summary-card">
+            <div class="import-summary-icon">▦</div>
+            <div>
+                <p>Historical Inventory</p>
+                <h3 id="importInventoryCount">0</h3>
+                <small>Validated product records</small>
+            </div>
+        </div>
+
+        <div class="import-summary-card">
+            <div class="import-summary-icon">▣</div>
+            <div>
+                <p>Historical Sales</p>
+                <h3 id="importSalesCount">0</h3>
+                <small>Validated sales receipts</small>
+            </div>
+        </div>
+
+        <div class="import-summary-card">
+            <div class="import-summary-icon">✓</div>
+            <div>
+                <p>Imported Records</p>
+                <h3 id="importCompletedCount">0</h3>
+                <small>Successfully imported this session</small>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- INVENTORY IMPORT -->
+
+    <section class="import-section">
+
+        <div class="import-section-heading">
+            <div>
+                <h3>1. Historical Inventory</h3>
+                <p>
+                    Upload previous product records while preserving
+                    product codes, costs and current stock.
+                </p>
+            </div>
+
+            <span class="import-step-label">
+                Step 1
+            </span>
+        </div>
+
+        <div class="import-upload-area">
+
+            <div class="import-upload-icon">▤</div>
+
+            <h4>Select Inventory CSV File</h4>
+
+            <p>
+                Expected product codes:
+                PR-00001, PR-00002, PR-00003...
+            </p>
+
+            <input
+                type="file"
+                id="inventoryImportFile"
+                accept=".csv,text/csv"
+            >
+
+        </div>
+
+        <div class="import-actions">
+
+            <button
+                type="button"
+                id="validateInventoryBtn"
+                class="primary"
+            >
+                Validate Inventory
+            </button>
+
+            <button
+                type="button"
+                id="importInventoryBtn"
+                class="primary"
+                disabled
+            >
+                Confirm Inventory Import
+            </button>
+
+        </div>
+
+        <div
+            id="inventoryImportMessage"
+            class="import-message"
+            aria-live="polite"
+        ></div>
+
+        <div
+            id="inventoryImportPreview"
+            class="import-preview hidden"
+        >
+
+            <h4>Inventory Preview</h4>
+
+            <div class="import-table-container">
+
+                <table class="import-table">
+
+                    <thead>
+                        <tr>
+                            <th>Product Code</th>
+                            <th>Product Name</th>
+                            <th>Date</th>
+                            <th>Unit Cost</th>
+                            <th>Selling Price</th>
+                            <th>Current Stock</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="inventoryImportTableBody">
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            <p
+                id="inventoryImportPreviewNote"
+                class="import-preview-note"
+            ></p>
+
+        </div>
+
+    </section>
+
+    <!-- SALES IMPORT -->
+
+    <section class="import-section">
+
+        <div class="import-section-heading">
+            <div>
+                <h3>2. Historical Sales</h3>
+                <p>
+                    Upload previous sales receipts without deducting
+                    stock quantities again.
+                </p>
+            </div>
+
+            <span class="import-step-label">
+                Step 2
+            </span>
+        </div>
+
+        <div class="import-upload-area">
+
+            <div class="import-upload-icon">▣</div>
+
+            <h4>Select Sales CSV File</h4>
+
+            <p>
+                Original receipt numbers and financial values
+                will be preserved.
+            </p>
+
+            <input
+                type="file"
+                id="salesImportFile"
+                accept=".csv,text/csv"
+            >
+
+        </div>
+
+        <div class="import-actions">
+
+            <button
+                type="button"
+                id="validateSalesBtn"
+                class="primary"
+            >
+                Validate Sales
+            </button>
+
+            <button
+                type="button"
+                id="importSalesBtn"
+                class="primary"
+                disabled
+            >
+                Confirm Sales Import
+            </button>
+
+        </div>
+
+        <div
+            id="salesImportMessage"
+            class="import-message"
+            aria-live="polite"
+        ></div>
+
+        <div
+            id="salesImportPreview"
+            class="import-preview hidden"
+        >
+
+            <h4>Sales Preview</h4>
+
+            <div class="import-table-container">
+
+                <table class="import-table">
+
+                    <thead>
+                        <tr>
+                            <th>Receipt Number</th>
+                            <th>Sale Date</th>
+                            <th>Customer</th>
+                            <th>Products</th>
+                            <th>Gross Profit</th>
+                            <th>Customer Payable</th>
+                            <th>Received</th>
+                            <th>Balance Due</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="salesImportTableBody">
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            <p
+                id="salesImportPreviewNote"
+                class="import-preview-note"
+            ></p>
+
+        </div>
+
+    </section>
+
+    <!-- IMPORT SAFETY INFORMATION -->
+
+    <section class="import-safety-section">
+
+        <h3>Import Safety & Data Protection</h3>
+
+        <div class="import-safety-grid">
+
+            <div class="import-safety-item">
+                <strong>✓ Original Product Codes</strong>
+                <p>
+                    Historical PR product codes will remain unchanged.
+                    New products will continue the same sequence.
+                </p>
+            </div>
+
+            <div class="import-safety-item">
+                <strong>✓ No Double Stock Deduction</strong>
+                <p>
+                    Historical sales will not reduce the
+                    inventory quantities already imported.
+                </p>
+            </div>
+
+            <div class="import-safety-item">
+                <strong>✓ Duplicate Protection</strong>
+                <p>
+                    Existing product codes and receipt numbers
+                    will be checked before importing.
+                </p>
+            </div>
+
+            <div class="import-safety-item">
+                <strong>✓ Financial Data Preservation</strong>
+                <p>
+                    Original financial values and identified
+                    inconsistencies will be retained for review.
+                </p>
+            </div>
+
+            <div class="import-safety-item">
+                <strong>✓ OPEX Unchanged</strong>
+                <p>
+                    Operating expenses and salary records
+                    will not be imported or modified.
+                </p>
+            </div>
+
+            <div class="import-safety-item">
+                <strong>✓ Administrator Access</strong>
+                <p>
+                    Historical imports are restricted to
+                    authorized administrator accounts.
+                </p>
+            </div>
+
+        </div>
+
+    </section>
+
+</div>

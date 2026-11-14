@@ -50,7 +50,7 @@ const setMessage = (message, type = '') => {
 };
 
 const formatCode = (number) => {
-    return `SR-${String(number).padStart(6, '0')}`;
+    return `PR-${String(number).padStart(5, '0')}`;
 };
 
 // Get today's date in the user's local timezone

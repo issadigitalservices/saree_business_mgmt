@@ -52,6 +52,7 @@ const PAGE_TITLES = {
     sales: 'Sales',
     reports: 'Reports',
     viewsales: 'View Sales',
+    importdata: 'Import Inventory & Sales',
     opex: 'OPEX',
     staff: 'Staff Management'
 };
@@ -69,6 +70,13 @@ const PAGE_MODULES = {
         module: () => import('../pages/dashboard.js'),
         initializer: 'initDashboard'
     },
+
+    importdata: {
+    html: 'pages/import-data.html',
+    css: 'assets/css/pages/import-data.css',
+    module: () => import('../pages/import-data.js'),
+    initializer: 'initImportData'
+},
 
     add: {
         html: 'pages/add-item.html',

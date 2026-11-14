@@ -494,7 +494,7 @@ total: values.total,
                     : 0;
 
                 const nextNumber = lastNumber + 1;
-                invoice = `Rct-${String(nextNumber).padStart(6, '0')}`;
+                invoice = `RCT-${String(nextNumber).padStart(6, '0')}`;
 
                 const updatedProducts = [];
 
