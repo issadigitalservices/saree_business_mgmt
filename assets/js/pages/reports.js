@@ -17,10 +17,28 @@ const money = (value) => {
     }).format(Number(value) || 0);
 };
 
+
+/* =====================================
+   SAFE NUMBER CONVERSION
+===================================== */
+
 const safeNumber = (value) => {
     const number = Number(value);
     return Number.isFinite(number) ? number : 0;
 };
+
+/* =====================================
+   PERCENTAGE OF REVENUE
+===================================== */
+
+const percentOfRevenue = (value, revenue) => {
+    if (!Number.isFinite(revenue) || revenue <= 0) {
+        return '0.00%';
+    }
+
+    return `${(safeNumber(value) / revenue * 100).toFixed(2)}%`;
+};
+
 
 const escapeHTML = (value) => {
     return String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -293,10 +311,18 @@ if (stockValueElement) {
             return `
                 <div class="financial-bar-item">
 
-                    <div class="financial-bar-label">
-                        <span>${escapeHTML(item.label)}</span>
-                        <strong>${money(item.value)}</strong>
-                    </div>
+                    
+<div class="financial-bar-label">
+    <span>${escapeHTML(item.label)}</span>
+
+    <strong>
+        ${money(item.value)}
+        <span class="report-percentage">
+            (${percentOfRevenue(item.value, revenue)})
+        </span>
+    </strong>
+</div>
+
 
                     <div class="financial-bar-track">
                         <div
@@ -367,18 +393,26 @@ if (stockValueElement) {
             ? `conic-gradient(${segments.join(', ')})`
             : '#e9eef0';
 
-        $('donutLegend').innerHTML = donutItems.map(item => `
-            <div class="donut-legend-item">
+        
+$('donutLegend').innerHTML = donutItems.map(item => `
+    <div class="donut-legend-item">
 
-                <span class="legend-dot ${item.className}"></span>
+        <span class="legend-dot ${item.className}"></span>
 
-                <div>
-                    <strong>${escapeHTML(item.label)}</strong>
-                    <span>${money(item.value)}</span>
-                </div>
+        <div>
+            <strong>${escapeHTML(item.label)}</strong>
 
-            </div>
-        `).join('');
+            <span>${money(item.value)}</span>
+
+            <span class="donut-percentage">
+                ${percentOfRevenue(item.value, revenue)}
+                of Revenue
+            </span>
+        </div>
+
+    </div>
+`).join('');
+
 
         /* ---------------------------------
            REPORT TIMESTAMP
