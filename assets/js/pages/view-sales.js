@@ -498,80 +498,516 @@ message('');
         }
     }
 
-    function printReceipt(sale) {
+    
+function printReceipt(sale) {
+    const win = window.open('', '_blank', 'width=900,height=900');
 
-        const win = window.open('', '_blank', 'width=850,height=850');
+    if (!win) {
+        message('Please allow pop-ups to print receipts.', 'error');
+        return;
+    }
 
-        if (!win) {
-            message('Please allow pop-ups to print receipts.', 'error');
-            return;
+    const hasValue = value =>
+        value !== null &&
+        value !== undefined &&
+        value !== '' &&
+        Number.isFinite(Number(value));
+
+    const legacy = sale.legacy?.imported === true;
+    const raw = sale.legacy?.raw || {};
+
+    const original = (...keys) => {
+        for (const key of keys) {
+            if (hasValue(raw[key])) return Number(raw[key]);
+        }
+        return null;
+    };
+
+    const items = getItems(sale);
+    const discount = hasValue(sale.discount)
+        ? Number(sale.discount)
+        : (original('Discount') ?? 0);
+
+    const courier = hasValue(sale.courier)
+        ? Number(sale.courier)
+        : original('Courier Pass Through');
+
+    const recordedPayable = legacy
+        ? (original('Customer Payable') ??
+           (hasValue(sale.legacy?.customerPayable)
+               ? Number(sale.legacy.customerPayable)
+               : null))
+        : null;
+
+    const subtotal = hasValue(sale.subtotal)
+        ? Number(sale.subtotal)
+        : (!legacy && items.length
+            ? getSubtotal(sale)
+            : original('Product Subtotal'));
+
+    const salesRevenue = hasValue(sale.salesRevenue)
+        ? Number(sale.salesRevenue)
+        : (subtotal !== null ? subtotal - discount : null);
+
+    const total = legacy && recordedPayable !== null
+        ? recordedPayable
+        : (hasValue(sale.total)
+            ? Number(sale.total)
+            : (salesRevenue !== null && courier !== null
+                ? salesRevenue + courier
+                : null));
+
+    const paid = hasValue(sale.paid)
+        ? Number(sale.paid)
+        : original('Amount Received');
+
+    const due = hasValue(sale.paymentDue)
+        ? Number(sale.paymentDue)
+        : original('Balance Due');
+
+    const fmt = value =>
+        value === null || value === undefined
+            ? 'Not recorded'
+            : money(value);
+
+    function amountInWords(value) {
+        if (!Number.isFinite(value) || value < 0) {
+            return 'Not available';
         }
 
-        const rows = getItems(sale).map(item => `
-            <tr>
-                <td>${esc(item.name)}</td>
-                <td>${esc(item.code || '-')}</td>
-                <td>${number(item.qty)}</td>
-                <td>${money(item.price)}</td>
-                <td>${money(number(item.qty) * number(item.price))}</td>
-            </tr>
-        `).join('');
+        const ones = [
+            '', 'One', 'Two', 'Three', 'Four', 'Five',
+            'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+            'Eleven', 'Twelve', 'Thirteen', 'Fourteen',
+            'Fifteen', 'Sixteen', 'Seventeen',
+            'Eighteen', 'Nineteen'
+        ];
 
-        win.document.write(`
-            <!doctype html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>${esc(sale.invoice || 'Receipt')}</title>
-                <style>
-                    body{font-family:Arial,sans-serif;padding:25px;color:#222}
-                    .receipt{max-width:700px;margin:auto}
-                    h1,.center{text-align:center}
-                    h1{color:#147f78}
-                    .line{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #ddd}
-                    table{width:100%;border-collapse:collapse;margin-top:20px}
-                    th,td{border:1px solid #ddd;padding:9px;text-align:left}
-                    th{background:#f1f5f5}
-                    .total{font-size:20px;font-weight:bold}
-                    .footer{text-align:center;margin-top:30px}
-                </style>
-            </head>
-            <body>
-                <div class="receipt">
-                    <h1>Aarabhi Online Threads</h1>
-                    <p class="center">Receipt</p>
+        const tens = [
+            '', '', 'Twenty', 'Thirty', 'Forty',
+            'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'
+        ];
 
-                    <div class="line"><span>Receipt No.</span><b>${esc(sale.invoice || '-')}</b></div>
-                    <div class="line"><span>Date</span><b>${esc(formatDate(sale))}</b></div>
-                    <div class="line"><span>Customer</span><b>${esc(sale.customer || '-')}</b></div>
-                    <div class="line"><span>Phone</span><b>${esc(sale.phone || '-')}</b></div>
-                    <div class="line"><span>Order Mode</span><b>${esc(sale.orderMode || '-')}</b></div>
-                    <div class="line"><span>Payment Mode</span><b>${esc(sale.paymentMode || '-')}</b></div>
+        function belowThousand(n) {
+            let result = '';
 
-                    <h3>Products</h3>
-                    <table>
-                        <thead><tr><th>Product</th><th>Code</th><th>Qty</th><th>Unit Price</th><th>Amount</th></tr></thead>
-                        <tbody>${rows}</tbody>
-                    </table>
+            if (n >= 100) {
+                result += ones[Math.floor(n / 100)] + ' Hundred ';
+                n %= 100;
+            }
 
-                    <div class="line"><span>Subtotal</span><b>${money(getSubtotal(sale))}</b></div>
-                    <div class="line"><span>Discount</span><b>${money(sale.discount)}</b></div>
-                    <div class="line"><span>Courier</span><b>${money(sale.courier)}</b></div>
-                    <div class="line total"><span>Grand Total</span><b>${money(sale.total)}</b></div>
-                    <div class="line"><span>Received</span><b>${money(sale.paid)}</b></div>
-                    <div class="line"><span>Balance Due</span><b>${money(sale.paymentDue)}</b></div>
-                    <div class="line"><span>Payment Status</span><b>${esc(sale.paymentStatus || '-')}</b></div>
-                    <div class="line"><span>Delivery Status</span><b>${esc(sale.deliveryStatus || '-')}</b></div>
+            if (n >= 20) {
+                result += tens[Math.floor(n / 10)] + ' ';
+                n %= 10;
+            }
 
-                    <div class="footer">Thank you for shopping with us!</div>
-                    <p class="center"><button onclick="window.print()">Print Receipt</button></p>
-                </div>
-            </body>
-            </html>
-        `);
+            if (n > 0) result += ones[n] + ' ';
 
-        win.document.close();
+            return result.trim();
+        }
+
+        function integerWords(n) {
+            if (n === 0) return 'Zero';
+
+            const parts = [];
+            const groups = [
+                [10000000, 'Crore'],
+                [100000, 'Lakh'],
+                [1000, 'Thousand']
+            ];
+
+            for (const [divisor, label] of groups) {
+                if (n >= divisor) {
+                    const count = Math.floor(n / divisor);
+                    parts.push(integerWords(count) + ' ' + label);
+                    n %= divisor;
+                }
+            }
+
+            if (n > 0) parts.push(belowThousand(n));
+
+            return parts.join(' ').trim();
+        }
+
+        const rupees = Math.floor(Math.round(value * 100) / 100);
+        const paise = Math.round(value * 100) % 100;
+
+        return integerWords(rupees) + ' Rupees' +
+            (paise ? ' and ' + integerWords(paise) + ' Paise' : '') +
+            ' Only';
     }
+
+    const productRows = items.map((item, index) => {
+        const qty = hasValue(item.qty) ? Number(item.qty) : null;
+        const price = hasValue(item.price) ? Number(item.price) : null;
+
+        return `
+            <tr>
+                <td class="center">${index + 1}</td>
+                <td class="center">${esc(item.code || '-')}</td>
+                <td>${esc(item.name || '-')}</td>
+                <td class="center">${qty ?? '-'}</td>
+                <td class="right">${fmt(price)}</td>
+                <td class="right">${
+                    qty !== null && price !== null
+                        ? money(qty * price)
+                        : 'Not recorded'
+                }</td>
+            </tr>
+        `;
+    }).join('');
+
+    const rows = productRows || `
+        <tr>
+            <td class="center">1</td>
+            <td class="center">${esc(sale.productCode || '-')}</td>
+            <td>${esc(sale.productName || raw['Product Names'] || '-')}</td>
+            <td class="center">${esc(raw['Total Quantity'] || '-')}</td>
+            <td class="right">Not recorded</td>
+            <td class="right">Not recorded</td>
+        </tr>
+    `;
+
+    const amountWords = total !== null
+        ? amountInWords(total)
+        : 'Not available';
+
+    const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(sale.invoice || 'Payment Receipt')}</title>
+
+<style>
+    @page {
+        size: A4;
+        margin: 12mm;
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        background: #edf1f4;
+        color: #222;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 12px;
+    }
+
+    .toolbar {
+        text-align: center;
+        padding: 14px;
+        background: #183047;
+    }
+
+    .toolbar button {
+        border: 0;
+        border-radius: 7px;
+        background: #11847b;
+        color: white;
+        padding: 12px 25px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .receipt {
+        width: 100%;
+        max-width: 794px;
+        min-height: 1050px;
+        margin: 18px auto;
+        padding: 32px 36px;
+        background: white;
+    }
+
+    .brand-box {
+        border: 1.5px solid #83b85f;
+        border-radius: 25px;
+        text-align: center;
+        padding: 24px 10px;
+    }
+
+    .brand-box h1 {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 33px;
+        font-style: italic;
+        margin: 0 0 12px;
+        color: #111;
+    }
+
+    .brand-box h3 {
+        font-size: 15px;
+        margin: 0;
+        text-decoration: underline;
+    }
+
+    .green-line {
+        height: 3px;
+        background: #16877d;
+        margin: 18px 4px;
+    }
+
+    .details-box {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 22px;
+        border: 1.5px solid #83b85f;
+        border-radius: 25px;
+        padding: 24px 18px;
+        line-height: 1.7;
+    }
+
+    .details-box p {
+        margin: 0 0 8px;
+    }
+
+    .details-box strong {
+        font-weight: 700;
+    }
+
+    .products {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 38px;
+        table-layout: fixed;
+    }
+
+    .products th,
+    .products td {
+        border: 1px solid #d4d4d4;
+        padding: 11px 6px;
+        overflow-wrap: anywhere;
+    }
+
+    .products th {
+        background: #bdbdbd;
+        text-align: center;
+        font-weight: bold;
+    }
+
+    .products th:nth-child(1) { width: 9%; }
+    .products th:nth-child(2) { width: 17%; }
+    .products th:nth-child(3) { width: 27%; }
+    .products th:nth-child(4) { width: 12%; }
+    .products th:nth-child(5) { width: 17%; }
+    .products th:nth-child(6) { width: 18%; }
+
+    .center { text-align: center; }
+    .right { text-align: right; }
+
+    .grand-row td {
+        background: #bdbdbd;
+        font-weight: bold;
+    }
+
+    .summary-box {
+        border: 1.5px solid #83b85f;
+        border-radius: 25px;
+        padding: 22px;
+        margin-top: 38px;
+    }
+
+    .summary-line {
+        display: flex;
+        justify-content: flex-end;
+        align-items: baseline;
+        gap: 16px;
+        padding: 7px 0;
+    }
+
+    .summary-line span:first-child {
+        min-width: 155px;
+        text-align: right;
+    }
+
+    .summary-line strong {
+        min-width: 120px;
+        text-align: right;
+    }
+
+    .summary-line.final {
+        font-size: 19px;
+        border-top: 1px solid #ddd;
+        margin-top: 10px;
+        padding-top: 15px;
+    }
+
+    .words {
+        text-align: right;
+        margin: 16px 0;
+        line-height: 1.7;
+    }
+
+    .footer {
+        text-align: center;
+        margin-top: 65px;
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 17px;
+        font-weight: bold;
+    }
+
+    .page-number {
+        text-align: right;
+        font-size: 10px;
+        margin-top: 30px;
+    }
+
+    .historical-note {
+        font-size: 10px;
+        color: #666;
+        text-align: right;
+        margin-top: 8px;
+    }
+
+    @media print {
+        body {
+            background: white;
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+        }
+
+        .toolbar { display: none; }
+
+        .receipt {
+            margin: 0;
+            padding: 0;
+            max-width: none;
+            min-height: 0;
+        }
+
+        .brand-box,
+        .details-box,
+        .summary-box {
+            break-inside: avoid;
+        }
+
+        .products tr {
+            break-inside: avoid;
+        }
+    }
+</style>
+</head>
+
+<body>
+<div class="toolbar">
+    <button onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<main class="receipt">
+    <header class="brand-box">
+        <h1>Aarabhi Online Threads</h1>
+        <h3>Payment Receipt</h3>
+    </header>
+
+    <div class="green-line"></div>
+
+    <section class="details-box">
+        <div>
+            <p><strong>Date:</strong> ${esc(formatDate(sale))}</p>
+            <p><strong>Receipt Number:</strong> ${esc(sale.invoice || '-')}</p>
+            <p><strong>Customer:</strong> ${esc(sale.customer || '-')}</p>
+            <p><strong>Phone:</strong> ${esc(sale.phone || '-')}</p>
+            <p><strong>Payment Mode:</strong> ${esc(sale.paymentMode || '-')}</p>
+            <p><strong>Order Mode:</strong> ${esc(sale.orderMode || '-')}</p>
+        </div>
+
+        <div>
+            <p><strong>Contact Us:</strong></p>
+            <p>Malappuram - District</p>
+            <p>Kerala - State</p>
+            <p>Mobile - +91 9789001513</p>
+        </div>
+    </section>
+
+    <table class="products">
+        <thead>
+            <tr>
+                <th>SL NO</th>
+                <th>P - Code</th>
+                <th>Product</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${rows}
+        </tbody>
+        <tfoot>
+            <tr class="grand-row">
+                <td colspan="5" class="center">GRAND TOTAL</td>
+                <td class="right">${fmt(subtotal)}</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <section class="summary-box">
+        <div class="summary-line">
+            <span>Product Subtotal:</span>
+            <strong>${fmt(subtotal)}</strong>
+        </div>
+
+        <div class="summary-line">
+            <span>Discount:</span>
+            <strong>${discount > 0 ? '-' : ''}${money(discount)}</strong>
+        </div>
+
+        <div class="summary-line">
+            <span>Courier Cost:</span>
+            <strong>${fmt(courier)}</strong>
+        </div>
+
+        <div class="summary-line">
+            <span>Total Amount:</span>
+            <strong>${fmt(salesRevenue)}</strong>
+        </div>
+
+        <div class="summary-line final">
+            <span>Total Payable:</span>
+            <strong>${fmt(total)}</strong>
+        </div>
+
+        <p class="words">
+            <strong>Amount In Words:</strong>
+            ${esc(amountWords)}
+        </p>
+
+        <div class="summary-line">
+            <span>Amount Received:</span>
+            <strong>${fmt(paid)}</strong>
+        </div>
+
+        <div class="summary-line">
+            <span>Balance Due:</span>
+            <strong>${fmt(due)}</strong>
+        </div>
+    </section>
+
+    ${legacy ? `
+        <p class="historical-note">
+            Historical receipt: unavailable original amounts
+            are shown as Not recorded.
+        </p>
+    ` : ''}
+
+    <footer class="footer">
+        Thank you for shopping with Aarabhi
+    </footer>
+
+    <div class="page-number">1/1</div>
+</main>
+</body>
+</html>
+`;
+
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+}
+
 
     async function deleteReceipt(id) {
 
