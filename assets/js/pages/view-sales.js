@@ -1400,9 +1400,31 @@ $('editSaleForm').addEventListener('submit', async event => {
     const customer = $('editCustomer').value.trim();
     const phone = $('editPhone').value.trim();
     const saleDate = $('editSaleDate').value;
-    const discount = number($('editDiscount').value);
-    const courier = number($('editCourier').value);
-    const paid = number($('editPaid').value);
+    
+const discount = number($('editDiscount').value);
+const courier = number($('editCourier').value);
+const paid = number($('editPaid').value);
+
+// Additional Profit - Gross Profit reports only
+const additionalProfitInput =
+    $('editAdditionalProfit').value.trim();
+
+const additionalProfit =
+    additionalProfitInput === ''
+        ? 0
+        : Number(additionalProfitInput);
+
+if (
+    !Number.isFinite(additionalProfit) ||
+    additionalProfit < 0
+) {
+    editMessage(
+        'Please enter a valid Additional Profit amount.',
+        'error'
+    );
+    return;
+}
+
 
     const subtotal = items.reduce(
         (sum, item) => sum + item.qty * item.price, 0
