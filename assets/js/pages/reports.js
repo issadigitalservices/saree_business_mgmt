@@ -211,11 +211,12 @@ const inventoryStockValue = products.reduce((sum, product) => {
         --------------------------------- */
 
         
+
 const netProfit =
-    revenue -
-    costOfGoodsSold -
+    grossProfit -
     operatingExpenses -
     totalSalary;
+
 
 
         /* ---------------------------------
