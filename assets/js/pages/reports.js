@@ -229,6 +229,17 @@ const netProfit =
         $('reportCOGS').textContent = money(costOfGoodsSold);
 
 
+const additionalProfitElement = $('reportAdditionalProfit');
+
+if (additionalProfitElement) {
+    additionalProfitElement.textContent = money(totalAdditionalProfit);
+
+    additionalProfitElement.style.color =
+        totalAdditionalProfit >= 0 ? '#15803d' : '#dc2626';
+}
+
+
+
 const grossProfitElement = $('reportGrossProfit');
 
 if (grossProfitElement) {
