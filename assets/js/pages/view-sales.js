@@ -88,6 +88,36 @@ function getProfit(sale) {
     - cost;
 }
 
+
+/* Product additional descriptions for receipts */
+let receiptProductDetails = new Map();
+
+async function loadReceiptProductDetails(db) {
+    const snapshot = await getDocs(collection(db, 'products'));
+
+    receiptProductDetails = new Map();
+
+    snapshot.docs.forEach(productDoc => {
+        const product = productDoc.data();
+
+        const details = {
+            name: product.name || '',
+            code: product.code || '',
+            additionalInfo: product.additionalInfo || ''
+        };
+
+        receiptProductDetails.set(productDoc.id, details);
+
+        if (product.code) {
+            receiptProductDetails.set(
+                `code:${String(product.code).trim().toLowerCase()}`,
+                details
+            );
+        }
+    });
+}
+
+
 let salesRecords = [];
 let activeFilter = 'all';
 let editingSale = null;
@@ -465,6 +495,15 @@ function exportSalesCSV() {
 
             const snapshot = await getDocs(collection(db, 'sales'));
 
+
+try {
+    await loadReceiptProductDetails(db);
+} catch (error) {
+    console.warn('Product descriptions could not be loaded:', error);
+    receiptProductDetails = new Map();
+}
+
+
             salesRecords = snapshot.docs.map(item => ({
                 id: item.id,
                 ...item.data()
@@ -637,25 +676,52 @@ function printReceipt(sale) {
             ' Only';
     }
 
-    const productRows = items.map((item, index) => {
-        const qty = hasValue(item.qty) ? Number(item.qty) : null;
-        const price = hasValue(item.price) ? Number(item.price) : null;
+    
+const productRows = items.map((item, index) => {
+    const qty = hasValue(item.qty) ? Number(item.qty) : null;
+    const price = hasValue(item.price) ? Number(item.price) : null;
 
-        return `
-            <tr>
-                <td class="center">${index + 1}</td>
-                <td class="center">${esc(item.code || '-')}</td>
-                <td>${esc(item.name || '-')}</td>
-                <td class="center">${qty ?? '-'}</td>
-                <td class="right">${fmt(price)}</td>
-                <td class="right">${
-                    qty !== null && price !== null
-                        ? money(qty * price)
-                        : 'Not recorded'
-                }</td>
-            </tr>
-        `;
-    }).join('');
+    const productDetails =
+        receiptProductDetails.get(item.productId) ||
+        receiptProductDetails.get(
+            `code:${String(item.code || '').trim().toLowerCase()}`
+        );
+
+    const additionalDescription = String(
+        item.additionalInfo ||
+        item.additionalDescription ||
+        item.description ||
+        productDetails?.additionalInfo ||
+        ''
+    ).trim();
+
+    return `
+        <tr>
+            <td class="center">${index + 1}</td>
+            <td class="center">${esc(item.code || '-')}</td>
+
+            <td>
+                <strong>${esc(item.name || '-')}</strong>
+
+                ${additionalDescription ? `
+                    <div class="product-additional-description">
+                        ${esc(additionalDescription)}
+                    </div>
+                ` : ''}
+            </td>
+
+            <td class="center">${qty ?? '-'}</td>
+            <td class="right">${fmt(price)}</td>
+
+            <td class="right">${
+                qty !== null && price !== null
+                    ? money(qty * price)
+                    : 'Not recorded'
+            }</td>
+        </tr>
+    `;
+}).join('');
+
 
     const rows = productRows || `
         <tr>

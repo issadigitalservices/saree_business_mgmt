@@ -320,6 +320,20 @@ $('salePaid').addEventListener('input', updateTotals);
 
         const values = getTotals();
 
+
+const additionalProfitInput = $('saleAdditionalProfit').value.trim();
+
+if (
+    additionalProfitInput !== '' &&
+    (
+        !Number.isFinite(Number(additionalProfitInput)) ||
+        Number(additionalProfitInput) < 0
+    )
+) {
+    throw new Error('Please enter a valid Additional Profit amount.');
+}
+
+
         if (values.courier < 0 || values.discount < 0 || values.paid < 0) {
     throw new Error('Courier, discount and received amounts cannot be negative.');
 }
@@ -346,9 +360,15 @@ discount: values.discount,
 salesRevenue: values.salesRevenue,
 total: values.total,
 
-            paid: values.paid,
-            paymentDue: values.due,
-            costTotal: cart.reduce(
+            
+paid: values.paid,
+paymentDue: values.due,
+
+// Internal additional profit — reports only
+additionalProfit: number($('saleAdditionalProfit').value),
+
+costTotal: cart.reduce(
+
                 (sum, item) => sum + item.qty * item.unitCost,
                 0
             ),
@@ -549,9 +569,14 @@ total: data.total,
 courier: data.courier,
 discount: data.discount,
 
-                    costTotal: data.costTotal,
-                    paid: data.paid,
-                    paymentDue: data.paymentDue,
+                    
+costTotal: data.costTotal,
+paid: data.paid,
+paymentDue: data.paymentDue,
+
+// Saved separately — never part of the customer invoice
+additionalProfit: data.additionalProfit,
+
                     orderMode: data.orderMode,
                     paymentMode: data.paymentMode,
                     paymentStatus: data.paymentStatus,
@@ -575,6 +600,7 @@ discount: data.discount,
             $('saleCourier').value = 0;
 $('saleDiscount').value = 0;
 $('salePaid').value = 0;
+$('saleAdditionalProfit').value = 0;
             $('saleProductInfo').classList.add('hidden');
 
             renderCart();

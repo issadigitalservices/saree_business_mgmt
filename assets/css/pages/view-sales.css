@@ -427,3 +427,14 @@
 .view-sales-page .data-table td:last-child {
     min-width: 190px;
 }
+
+
+.product-additional-description {
+    margin-top: 5px;
+    color: #555;
+    font-size: 10px;
+    font-weight: normal;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}

@@ -149,7 +149,20 @@ const revenue = sales.reduce((sum, sale) => {
         );
 
 
-const grossProfit = revenue - costOfGoodsSold;
+
+// Sum additional profit from all sales records.
+// Existing sales without this field contribute zero.
+const totalAdditionalProfit = sales.reduce(
+    (sum, sale) => sum + safeNumber(sale.additionalProfit),
+    0
+);
+
+// Gross Profit includes the internal profit adjustment.
+const grossProfit =
+    revenue -
+    costOfGoodsSold +
+    totalAdditionalProfit;
+
 
 
         const outstanding = sales.reduce(
@@ -268,11 +281,18 @@ if (stockValueElement) {
             },
 
 
+
+{
+    label: 'Additional Profit',
+    value: totalAdditionalProfit,
+    className: 'bar-profit'
+},
 {
     label: 'Gross Profit',
     value: grossProfit,
     className: 'bar-profit'
 },
+
 
             {
                 label: 'Total Discount',
