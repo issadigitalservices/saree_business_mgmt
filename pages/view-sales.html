@@ -128,10 +128,27 @@
                         <input id="editPhone" type="tel">
                     </label>
 
-                    <label>
-                        Amount Received (₹)
-                        <input id="editPaid" type="number" min="0" step="0.01" required>
-                    </label>
+                    
+<label>
+    Amount Received (₹)
+    <input id="editPaid" type="number" min="0" step="0.01" required>
+</label>
+
+<label>
+    Additional Profit (₹)
+    <input
+        id="editAdditionalProfit"
+        type="number"
+        min="0"
+        step="0.01"
+        value="0"
+        placeholder="Enter additional profit"
+    >
+    <small style="color:#64748b;font-size:11px;">
+        Internal profit adjustment — not included in customer receipt.
+    </small>
+</label>
+
 
                     <label>
                         Courier Cost (₹)

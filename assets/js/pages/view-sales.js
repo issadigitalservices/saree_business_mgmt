@@ -1153,6 +1153,11 @@ async function openEdit(sale) {
     $('editCustomer').value = sale.customer || '';
     $('editPhone').value = sale.phone || '';
     $('editPaid').value = number(sale.paid);
+
+// Load existing additional profit.
+// Older receipts without this field default to zero.
+$('editAdditionalProfit').value = number(sale.additionalProfit);
+
     $('editCourier').value = number(sale.courier);
     $('editDiscount').value = number(sale.discount);
     $('editOrderMode').value = sale.orderMode || 'Online';
@@ -1254,6 +1259,27 @@ function calculateEditTotals() {
     const discount = number($('editDiscount').value);
     const courier = number($('editCourier').value);
     const paid = number($('editPaid').value);
+
+
+const additionalProfitInput =
+    $('editAdditionalProfit').value.trim();
+
+const additionalProfit =
+    additionalProfitInput === ''
+        ? 0
+        : Number(additionalProfitInput);
+
+if (
+    !Number.isFinite(additionalProfit) ||
+    additionalProfit < 0
+) {
+    editMessage(
+        'Please enter a valid Additional Profit amount.',
+        'error'
+    );
+    return;
+}
+
 
     const salesRevenue = subtotal - discount;
     const total = salesRevenue + courier;
@@ -1558,10 +1584,16 @@ $('editSaleForm').addEventListener('submit', async event => {
                 courier,
                 salesRevenue,
                 total,
-                paid,
-                paymentDue: due,
-                paymentStatus,
-                costTotal,
+                
+paid,
+paymentDue: due,
+paymentStatus,
+costTotal,
+
+// Internal adjustment for Reports Gross Profit only.
+// Not included in Net Profit or customer receipt.
+additionalProfit,
+
                 orderMode: $('editOrderMode').value,
                 paymentMode: $('editPaymentMode').value,
                 deliveryStatus: $('editDeliveryStatus').value,
