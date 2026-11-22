@@ -3,15 +3,25 @@
    Image storage: Cloudflare R2
 ===================================== */
 
+
 import {
     collection,
     doc,
     getDoc,
+    getDocs,
     addDoc,
     setDoc,
+    updateDoc,
+    writeBatch,
     serverTimestamp,
     runTransaction
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+
+
+import {
+    initProductCategories
+} from './product-categories.js';
+
 
 const $ = (id) => document.getElementById(id);
 
@@ -117,6 +127,43 @@ export async function initAddItem({
 
     currentUser = user;
     currentEditingId = editingProductId;
+
+// Product category management - admin access
+const manageNamesButton = $('manageProductNamesBtn');
+const manageNamesWrap = $('productNameManageWrap');
+const namesModal = $('productNamesModal');
+
+if (manageNamesButton && manageNamesWrap && user?.uid) {
+    try {
+        
+const adminSnap = await getDoc(
+    doc(db, 'users', user.uid)
+);
+
+if (
+    adminSnap.exists() &&
+    adminSnap.data().active === true &&
+    adminSnap.data().role === 'admin'
+) {
+
+            manageNamesWrap.style.display = 'block';
+
+            manageNamesButton.onclick = () => {
+                namesModal.classList.remove('hidden');
+                namesModal.style.display = 'flex';
+            };
+        }
+    } catch (error) {
+        console.error('Admin verification failed:', error);
+    }
+}
+
+$('closeProductNamesBtn')?.addEventListener('click', () => {
+    namesModal.style.display = 'none';
+    namesModal.classList.add('hidden');
+});
+
+
     $('productDate').value = getTodayDate();
 
     currentImageUrl = '';
@@ -770,12 +817,15 @@ updateRemoveImageButton();
        INITIALIZE
     --------------------------------- */
 
-    calculateTotals();
-    toggleDestination();
+    
+calculateTotals();
+toggleDestination();
 
-    if (currentEditingId) {
-        await loadProductForEdit(currentEditingId);
-    } else {
-        await loadProductCode();
-    }
+await initProductCategories({ db, user });
+
+if (currentEditingId) {
+    await loadProductForEdit(currentEditingId);
+} else {
+    await loadProductCode();
+}
 }

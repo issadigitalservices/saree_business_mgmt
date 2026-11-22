@@ -1561,24 +1561,33 @@ if (
             }
 
             // Preserve historical unit cost for existing receipt items.
-            const revisedItems = items.map(item => {
-                const oldItem = originalItems.find(
-                    old => old.productId === item.productId
-                );
+            
+const revisedItems = items.map(item => {
+    const oldItem = originalItems.find(
+        old => old.productId === item.productId
+    );
 
-                const product = productData.get(item.productId).data;
+    const product = productData.get(item.productId).data;
 
-                return {
-                    productId: item.productId,
-                    name: item.name,
-                    code: item.code,
-                    qty: item.qty,
-                    price: item.price,
-                    unitCost: oldItem
-                        ? number(oldItem.unitCost)
-                        : number(product.unitCost)
-                };
-            });
+    return {
+        productId: item.productId,
+
+        // Always use latest product name from inventory
+        name: product.name || item.name,
+
+        // Preserve the original receipt product code
+        code: item.code,
+
+        qty: item.qty,
+        price: item.price,
+
+        // Preserve historical cost for existing items
+        unitCost: oldItem
+            ? number(oldItem.unitCost)
+            : number(product.unitCost)
+    };
+});
+
 
             const costTotal = revisedItems.reduce(
                 (sum, item) =>

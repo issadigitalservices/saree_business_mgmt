@@ -530,6 +530,10 @@ costTotal: cart.reduce(
                     const latest = snap.data();
                     const stock = number(latest.stock);
 
+                    // Use the latest product name from Firestore
+// to prevent saving an outdated category name.
+data.items[i].name = latest.name || item.name;
+
                     if (stock < item.qty) {
                         throw new Error(
                             `Insufficient stock for ${latest.name}. Available: ${stock}`
